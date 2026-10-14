@@ -268,11 +268,11 @@ window.SLOY_SHOP = (() => {
     };
   };
 
-  // ---------- Подсказка при задържане на мишката върху материал ----------
+  // ---------- Подсказка при задържане на мишката (материал, размер) ----------
   const tip = $('#mat-tip');
   const hideTip = () => { if (tip) tip.hidden = true; };
-  const showTip = label => {
-    tip.innerHTML = matHTML(label.dataset.mat);
+  const showTip = (label, html) => {
+    tip.innerHTML = html;
     tip.hidden = false;
     const r = label.getBoundingClientRect();
     const tw = tip.offsetWidth;
@@ -287,25 +287,27 @@ window.SLOY_SHOP = (() => {
     tip.classList.toggle('below', below);
   };
   let tipTimer;
-  const bindMaterialTips = (container, scroller = window) => {
+  // selector = елементите с подсказка в container, html(елемент) = съдържанието ѝ
+  const bindTips = (container, selector, html, scroller = window) => {
     if (!tip) return;
     scroller.addEventListener('scroll', hideTip, { passive: true });
     if (!matchMedia('(hover: hover)').matches) {
-      // телефон: подсказката излиза за няколко секунди, когато избереш материал
+      // телефон: подсказката излиза за няколко секунди, когато избереш
       container.addEventListener('change', e => {
-        const l = e.target.closest('.mat');
+        const l = e.target.closest(selector);
         if (!l) return;
-        showTip(l);
+        showTip(l, html(l));
         clearTimeout(tipTimer);
         tipTimer = setTimeout(hideTip, 3500);
       });
       return;
     }
-    container.addEventListener('mouseover', e => { const l = e.target.closest('.mat'); if (l) showTip(l); });
+    container.addEventListener('mouseover', e => { const l = e.target.closest(selector); if (l) showTip(l, html(l)); });
     container.addEventListener('mouseleave', hideTip);
-    container.addEventListener('focusin', e => { if (e.target.matches(':focus-visible')) showTip(e.target.closest('.mat')); });
+    container.addEventListener('focusin', e => { const l = e.target.closest(selector); if (l && e.target.matches(':focus-visible')) showTip(l, html(l)); });
     container.addEventListener('focusout', hideTip);
   };
+  const bindMaterialTips = (container, scroller) => bindTips(container, '.mat', l => matHTML(l.dataset.mat), scroller);
 
   // ---------- Изпращане ----------
   // Web3Forms, а без ключ — отваря имейл програмата на клиента с готово съобщение.
@@ -433,7 +435,7 @@ window.SLOY_SHOP = (() => {
   return {
     cfg, scriptUrl, t, lang, pricing, priceFor, assemblyItems,
     ncolorsHTML, maxColorsFor, fitExtra, extraColorsHTML, totals, sumLinesHTML, totalsFields, afterOrder, mountExtras, esc, fmt, clampQty, colorsFor, available, previewColor, matHTML, newOrderNo,
-    materialsHTML, swatchesHTML, finishFor, bindMaterialTips, hideTip,
+    materialsHTML, swatchesHTML, finishFor, bindMaterialTips, bindTips, hideTip,
     sendOrder, setupCheckout, toast, openDrawer, closeDrawer,
   };
 })();

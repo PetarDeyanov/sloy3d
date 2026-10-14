@@ -511,6 +511,8 @@
   const renderTextPanel = () => {
     const tp = tplOf();
     $('#tx-title').textContent = t(tp.label);
+    $('#tx-note').hidden = !tp.note;
+    $('#tx-note').textContent = tp.note ? t(tp.note) : '';
     $('#tx-template').innerHTML = chipsHTML(X.templates, tx.tpl, 'tx-template');
     $('#tx-font').innerHTML = chipsHTML(X.fonts, tx.font, 'tx-font', f => `<i class="font-sample" style="font-family:'${f.family}';font-weight:${f.weight}">${t(f.label)}</i>`);
     $('#tx-materials').innerHTML = S.materialsHTML(S.available(ALL), tx.mat, 'tx-mat', tp.rec);
@@ -701,8 +703,9 @@
 
   // ---------- Старт ----------
   renderLithoPanel();
-  startTemplate(tx.tpl);
-  showTool(location.hash === '#nadpis' ? 'text' : 'litho');
+  // #nadpis — надписите, #pozivna — направо табелката с позивна (връзката е от каталога, airsoft)
+  startTemplate(location.hash === '#pozivna' ? 'callsign' : tx.tpl);
+  showTool(['#nadpis', '#pozivna'].includes(location.hash) ? 'text' : 'litho');
   // шрифтовете идват от Google Fonts — щом се заредят, прерисуваме надписа
   Promise.all(X.fonts.map(f => document.fonts.load(`${f.weight} 40px "${f.family}"`, 'АБВ abc'))).then(renderTextNumbers, renderTextNumbers);
   let resizeTimer;

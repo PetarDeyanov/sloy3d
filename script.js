@@ -98,6 +98,10 @@
     banner.hidden = false;
   }
 
+  // ---------- Въпрос от връзка (напр. vaprosi.html#pasva) — отваряме го ----------
+  const asked = location.hash.length > 1 && document.getElementById(location.hash.slice(1));
+  if (asked && asked.tagName === 'DETAILS') asked.open = true;
+
   // ---------- Сравнение на материалите (начална страница) ----------
   const matGrid = $('#mat-compare');
   if (matGrid && catalog) {

@@ -7,14 +7,40 @@
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
   const byId = id => products.find(p => p.id === id);
+  // размер: индекс в p.sizes (по подразбиране — този с def); продукт без размери връща себе си
+  const defSize = p => Math.max(0, (p.sizes || []).findIndex(s => s.def));
+  const sizeOf = (p, idx) => p.sizes?.[idx ?? defSize(p)] || p;
   // цената идва от формулата (грамове, материал, цвят, печалба) и се закръгля до 0,50 €
-  const unitPrice = (p, mat, picks) => Math.max(0.5, Math.round(S.priceFor({ grams: p.grams, hours: p.hours, mat, picks, assembly: p.assembly }) * 2) / 2);
+  const unitPrice = (p, mat, picks, idx) => {
+    const s = sizeOf(p, idx);
+    return Math.max(0.5, Math.round(S.priceFor({ grams: s.grams, hours: s.hours, mat, picks, assembly: p.assembly }) * 2) / 2);
+  };
   // всеки продукт може във всеки материал; p.materials са препоръчаните (първият е по подразбиране)
   const ALL = Object.keys(materials);
-  const fromPrice = p => Math.min(...S.available(ALL).map(m => unitPrice(p, m)));
+  const fromPrice = p => Math.min(...S.available(ALL).flatMap(m => (p.sizes || [p]).map((_, i) => unitPrice(p, m, undefined, i))));
+  // мерки [ш, д, в] в мм; null = неизвестно, approx = приблизителни. tr = bg за имейла (без превод)
+  const bg = (s, vars) => s.replace(/\{(\w+)\}/g, (m, k) => vars?.[k] ?? m);
+  const dimsText = (d, approx, tr = t) => {
+    if (!d) return '';
+    const [w, l, h] = d;
+    const pre = approx ? '≈ ' : '';
+    if (w && l && h) return `${pre}${w} × ${l} × ${h} ${tr('мм')}`;
+    if (w && l) return `${pre}${w} × ${l} ${tr('мм')}`;
+    if (h) return pre + tr('височина {n} мм', { n: h });
+    if (w) return pre + tr('дължина {n} мм', { n: w });
+    return '';
+  };
+  // airsoft: на какво пасва (fits) — универсалните пасват навсякъде
+  const platforms = window.SLOY_CATALOG.platforms || {};
+  const fitMatch = (p, f) => !f || (p.fits || []).includes(f) || (f !== 'universal' && (p.fits || []).includes('universal'));
+  const fitText = p => (p.fits.includes('universal')
+    ? t('Универсален') + (p.std ? ` · ${t(p.std)}` : '')
+    : p.fits.map(k => t(platforms[k].label)).join(', '));
   // първият препоръчан материал, който е на склад
   const firstMat = p => p.materials.find(m => S.available([m]).length) || S.available(ALL)[0];
-  const mwUrl = p => `https://makerworld.com/en/models/${p.mw.id}`;
+  // откъде е моделът: MakerWorld (по подразбиране) или Printables (pr(...) в products.js)
+  const srcName = p => (p.mw.site === 'printables' ? 'Printables' : 'MakerWorld');
+  const mwUrl = p => (p.mw.site === 'printables' ? `https://www.printables.com/model/${p.mw.id}` : `https://makerworld.com/en/models/${p.mw.id}`);
   const LICENSES = {
     'CC0': ['CC0 1.0', 'https://creativecommons.org/publicdomain/zero/1.0/'],
     'BY': ['CC BY 4.0', 'https://creativecommons.org/licenses/by/4.0/'],
@@ -35,14 +61,15 @@
   const loadCart = () => {
     try {
       const raw = JSON.parse(localStorage.getItem(CART_KEY)) || [];
-      return raw.filter(i => byId(i.id) && isAvailable(byId(i.id)) && materials[i.mat]);
+      return raw.filter(i => byId(i.id) && isAvailable(byId(i.id)) && materials[i.mat])
+        .map(i => (byId(i.id).sizes && !byId(i.id).sizes[i.size] ? { ...i, size: defSize(byId(i.id)) } : i));
     } catch { return []; }
   };
   let cart = loadCart();
   const colorsOf = i => [i.color, ...(i.extra || [])];
-  const keyOf = i => [i.id, i.mat, ...colorsOf(i), i.note, JSON.stringify(i.opts || {})].join('|');
+  const keyOf = i => [i.id, i.mat, i.size ?? '', ...colorsOf(i), i.note, JSON.stringify(i.opts || {})].join('|');
   const optsText = (i, translate = true) => Object.entries(i.opts || {}).map(([k, v]) => `${translate ? t(k) : k}: ${translate ? t(v) : v}`).join(' · ');
-  const lineTotal = i => unitPrice(byId(i.id), i.mat, colorsOf(i)) * i.qty;
+  const lineTotal = i => unitPrice(byId(i.id), i.mat, colorsOf(i), i.size) * i.qty;
   const subtotal = () => cart.reduce((s, i) => s + lineTotal(i), 0);
   let extras = null;      // експресна изработка и промокод (кутията в количката)
   let lastTotals = null;
@@ -57,6 +84,7 @@
       <span class="product-body">
         <span class="product-cat mono">${t(categories[p.cat])}</span>
         <span class="product-name">${esc(pick(p, 'name'))}</span>
+        ${p.fits ? `<span class="product-fit">${esc(fitText(p))}</span>` : ''}
         <span class="product-foot">
           <span class="product-price"><small>${t('от')}</small>${fmt(fromPrice(p))}</span>
         </span>
@@ -65,7 +93,8 @@
   document.addEventListener('error', e => {
     if (e.target.tagName === 'IMG') e.target.parentElement.classList.add('noimg');
   }, true);
-  const searchText = p => [p.name, p.desc, p.en?.name, p.en?.desc, categories[p.cat], t(categories[p.cat]), subLabel(p), subLabel(p) && t(subLabel(p)), ...(p.seasons || []).map(s => pick(seasons[s], 'label'))].join(' ').toLowerCase();
+  const searchText = p => [p.name, p.desc, p.en?.name, p.en?.desc, categories[p.cat], t(categories[p.cat]), subLabel(p), subLabel(p) && t(subLabel(p)), ...(p.seasons || []).map(s => pick(seasons[s], 'label')),
+    ...(p.fits || []).map(k => platforms[k].label), p.std].join(' ').toLowerCase();
 
   // ---------- Филтри, празници и търсене ----------
   const head = $('.catalog-head');
@@ -74,7 +103,9 @@
   const search = $('#catalog-search');
   let currentFilter = 'all';
   let currentSub = null;   // подкатегория в избраната категория
+  let currentFit = null;   // airsoft: платформа (m4, ak, glock…)
   const subBox = $('#subfilters');
+  const fitBox = $('#fitfilters');
 
   const renderFilters = () => {
     const keys = [['all', t('Всички'), shown.length]];
@@ -99,6 +130,18 @@
       <button class="subfilter" type="button" data-sub="${key}" aria-pressed="${(currentSub || '') === key}">${label}<span class="n">${n}</span></button>`).join('');
   };
 
+  // трети ред (airsoft): „Пасва на“ M4 / AK / Glock… — универсалните се броят навсякъде
+  const renderFits = () => {
+    const inCat = shown.filter(p => p.cat === currentFilter && p.fits && (!currentSub || p.sub === currentSub));
+    fitBox.hidden = !inCat.length;
+    if (fitBox.hidden) return;
+    const keys = [['', t('Всички'), inCat.length], ...Object.entries(platforms).map(([k, v]) => [k, t(v.label), inCat.filter(p => fitMatch(p, k)).length, t(v.hint)])];
+    fitBox.innerHTML = `<span class="fit-label">${t('Пасва на:')}</span>`
+      + keys.map(([key, label, n, hint]) => `
+      <button class="subfilter" type="button" data-fit="${key}" aria-pressed="${(currentFit || '') === key}"${hint ? ` title="${esc(hint)}"` : ''}>${label}<span class="n">${n}</span></button>`).join('')
+      + `<span class="fit-links"><a href="personalizirani.html#pozivna">${t('Табелка с позивна →')}</a><a href="poruchka.html">${t('Няма част за твоята реплика? Прати снимка и мерки →')}</a></span>`;
+  };
+
   const renderHead = () => {
     const s = seasons[currentFilter];
     head.classList.toggle('is-season', !!s);
@@ -120,31 +163,44 @@
     let shown = 0;
     $$('.product', grid).forEach(el => {
       const p = byId(el.dataset.id);
-      const inFilter = (currentFilter === 'all' || p.cat === currentFilter || p.seasons?.includes(currentFilter)) && (!currentSub || p.sub === currentSub);
+      const inFilter = (currentFilter === 'all' || p.cat === currentFilter || p.seasons?.includes(currentFilter)) && (!currentSub || p.sub === currentSub)
+        && (!currentFit || (p.fits && fitMatch(p, currentFit)));
       el.hidden = !(inFilter && (!q || searchText(p).includes(q)));
+      // при избрана платформа частите точно за нея са първи, универсалните — след тях
+      el.style.order = currentFit && currentFit !== 'universal' && p.fits?.includes(currentFit) ? -1 : '';
       if (!el.hidden) shown++;
     });
     $('#no-results').hidden = shown > 0;
   };
 
   // origin = бутонът, от който да изскочат празничните анимации (fx.js)
-  // f = 'категория' или 'категория/подкатегория' (напр. airsoft/gear)
+  // f = 'категория', 'категория/подкатегория' (напр. airsoft/gear), а за airsoft и ':платформа' (airsoft/mags:glock)
   const setFilter = (f, origin) => {
-    const [cat, subKey] = String(f || '').split('/');
+    const [path, fitKey] = String(f || '').split(':');
+    const [cat, subKey] = path.split('/');
     currentFilter = categories[cat] || (cat && cat === activeSeason) ? cat : 'all';
     currentSub = subKey && subcats[currentFilter]?.[subKey] ? subKey : null;
+    currentFit = fitKey && platforms[fitKey] && shown.some(p => p.cat === currentFilter && p.fits) ? fitKey : null;
     renderFilters();
     renderSubs();
+    renderFits();
     renderHead();
     apply();
     if (seasons[currentFilter]) window.SLOY_FX?.play(currentFilter, origin || $('#cat-title'));
     else window.SLOY_FX?.stop();
   };
-  const syncHash = () => history.replaceState(null, '', currentFilter === 'all' ? location.pathname : '#' + currentFilter + (currentSub ? '/' + currentSub : ''));
+  const filterKey = (sub = currentSub, fit = currentFit) => currentFilter + (sub ? '/' + sub : '') + (fit ? ':' + fit : '');
+  const syncHash = () => history.replaceState(null, '', currentFilter === 'all' ? location.pathname : '#' + filterKey());
   subBox.addEventListener('click', e => {
     const b = e.target.closest('.subfilter');
     if (!b) return;
-    setFilter(currentFilter + (b.dataset.sub ? '/' + b.dataset.sub : ''));
+    setFilter(filterKey(b.dataset.sub || null));
+    syncHash();
+  });
+  fitBox.addEventListener('click', e => {
+    const b = e.target.closest('.subfilter');
+    if (!b) return;
+    setFilter(filterKey(currentSub, b.dataset.fit || null));
     syncHash();
   });
   filters.addEventListener('click', e => {
@@ -157,7 +213,7 @@
 
   // ---------- Панел на продукта ----------
   const pdEl = $('#product-drawer');
-  const pd = { product: null, mat: null, color: null, ncolors: 1, extra: [], qty: 1 };
+  const pd = { product: null, mat: null, color: null, ncolors: 1, extra: [], qty: 1, size: 0 };
 
   // 3D преглед — появява се, ако има файл models/<id>.stl
   let viewerModule = null;
@@ -202,11 +258,44 @@
   });
 
   const renderPrice = () => {
-    const u = unitPrice(pd.product, pd.mat, [pd.color, ...pd.extra]);
+    const u = unitPrice(pd.product, pd.mat, [pd.color, ...pd.extra], pd.size);
     $('#pd-price').textContent = fmt(u * pd.qty);
     $('#pd-unit').textContent = pd.qty > 1 ? t('{price} / бр.', { price: fmt(u) }) : '';
     $('#pd-qty').value = pd.qty;
   };
+
+  // ---------- Размер ----------
+  // подсказката при задържане на мишката: мерки, пояснение и цена в избрания материал и цвят
+  const sizeTipHTML = i => {
+    const s = pd.product.sizes[i];
+    const dims = dimsText(s.dims, s.approx);
+    return `<strong>${esc(t(s.label))}</strong>`
+      + [dims && esc(t('Размери: {d}', { d: dims })), s.note && esc(t(s.note))].filter(Boolean).join('<br>')
+      + `<em>${t('Цена: {price} / бр.', { price: fmt(unitPrice(pd.product, pd.mat, [pd.color, ...pd.extra], i)) })}</em>`;
+  };
+  const renderSizeInfo = () => {
+    const s = pd.product.sizes[pd.size];
+    const dims = dimsText(s.dims, s.approx);
+    $('#pd-size-info').textContent = [dims && t('Размери: {d}', { d: dims }), s.note && t(s.note)].filter(Boolean).join(' · ');
+  };
+  const renderSizes = () => {
+    const p = pd.product;
+    $('#pd-size-opt').hidden = !p.sizes;
+    $('#pd-dims').hidden = !!p.sizes || !p.dims;
+    if (!p.sizes) {
+      $('#pd-dims').textContent = p.dims ? t('Размери: {d}', { d: dimsText(p.dims, p.approx) }) : '';
+      return;
+    }
+    $('#pd-sizes').innerHTML = p.sizes.map((s, i) => `
+      <label class="chip size-chip" data-size="${i}"><input type="radio" name="pd-size" value="${i}"${i === pd.size ? ' checked' : ''}><span>${esc(t(s.label))}</span></label>`).join('');
+    renderSizeInfo();
+  };
+  $('#pd-sizes').addEventListener('change', e => {
+    pd.size = +e.target.value;
+    renderSizeInfo();
+    renderPrice();
+  });
+  S.bindTips($('#pd-sizes'), '.size-chip', l => sizeTipHTML(+l.dataset.size), $('.drawer-panel', pdEl));
   const renderExtra = () => {
     pd.extra = S.fitExtra(pd.mat, pd.color, pd.extra, pd.ncolors);
     $('#pd-extra-colors').innerHTML = S.extraColorsHTML(pd.mat, pd.extra, 'pd-color');
@@ -230,7 +319,7 @@
   const openProduct = id => {
     const p = byId(id);
     if (!p || !isAvailable(p)) return;
-    Object.assign(pd, { product: p, mat: firstMat(p), ncolors: 1, extra: [], qty: 1 });
+    Object.assign(pd, { product: p, mat: firstMat(p), ncolors: 1, extra: [], qty: 1, size: defSize(p) });
     const img = $('#pd-img');
     img.parentElement.classList.remove('noimg');
     img.src = p.mw.img;
@@ -242,7 +331,11 @@
     $('#pd-assembly').hidden = !p.assembly;
     $('#pd-assembly').textContent = p.assembly ? t('Сглобяваме го ние') + (asm ? ` · ${t('В комплекта:')} ${asm}` : '') : '';
     $('#pd-note').value = '';
-    // избор под продукта (напр. модел на телефона)
+    // airsoft: на какво пасва + „пасва или препринтираме“
+    $('#pd-fit').hidden = !p.fits;
+    $('#pd-fit-on').textContent = p.fits ? t('Пасва на: {list}', { list: fitText(p) }) : '';
+    renderSizes();
+    // избор под продукта (напр. модел на телефона, марка на репликата)
     const opts = p.options || [];
     $('#pd-options').hidden = !opts.length;
     $('#pd-options').innerHTML = opts.map(o => `
@@ -253,13 +346,14 @@
             const items = list.map(x => `<option value="${esc(x)}">${esc(t(x))}</option>`).join('');
             return g ? `<optgroup label="${esc(g)}">${items}</optgroup>` : items;
           }).join('')}
-          ${o.other ? `<option value="__other">${t('Друг модел — ще го напиша')}</option>` : ''}
+          ${o.other ? `<option value="__other">${esc(t(o.otherLabel || 'Друг модел — ще го напиша'))}</option>` : ''}
         </select>
       </label>
-      ${o.other ? `<label class="field" data-other-for="${o.key}" hidden><span>${t('Кой модел?')} *</span><input data-opt-other="${o.key}" maxlength="60" placeholder="${esc(t('напр. Motorola Edge 50'))}"></label>` : ''}`).join('');
+      ${o.other ? `<label class="field" data-other-for="${o.key}" hidden><span>${esc(t(o.otherAsk || 'Кой модел?'))} *</span><input data-opt-other="${o.key}" maxlength="60" placeholder="${esc(t(o.otherPlaceholder || 'напр. Motorola Edge 50'))}"></label>` : ''}
+      ${o.hint ? `<p class="opt-note">${esc(t(o.hint))}</p>` : ''}`).join('');
     $('#pd-materials').innerHTML = S.materialsHTML(S.available(ALL), pd.mat, 'pd-mat', p.materials);
     const [licName, licUrl] = LICENSES[p.mw.lic];
-    $('#pd-credit').innerHTML = `${t('Модел: „{title}“ от {by}', { title: esc(p.mw.title), by: esc(p.mw.by) })} · <a href="${licUrl}" target="_blank" rel="noopener license">${licName}</a> · <a href="${mwUrl(p)}" target="_blank" rel="noopener">MakerWorld ↗</a>`;
+    $('#pd-credit').innerHTML = `${t('Модел: „{title}“ от {by}', { title: esc(p.mw.title), by: esc(p.mw.by) })} · <a href="${licUrl}" target="_blank" rel="noopener license">${licName}</a> · <a href="${mwUrl(p)}" target="_blank" rel="noopener">${srcName(p)} ↗</a>`;
     renderMaterial();
     S.openDrawer(pdEl);
     history.replaceState(null, '', '#p-' + p.id);
@@ -320,7 +414,7 @@
         <img src="${p.mw.img}" alt="" loading="lazy" referrerpolicy="no-referrer">
         <div>
           <p class="ci-name">${esc(pick(p, 'name'))}</p>
-          <p class="ci-meta">${t(materials[i.mat].label)} · ${esc(colorsOf(i).map(c => t(c)).join(' + '))}</p>
+          <p class="ci-meta">${p.sizes ? `${esc(t(sizeOf(p, i.size).label))} · ` : ''}${t(materials[i.mat].label)} · ${esc(colorsOf(i).map(c => t(c)).join(' + '))}</p>
           ${i.opts ? `<p class="ci-meta">${esc(optsText(i))}</p>` : ''}
           ${i.note ? `<p class="ci-note">„${esc(i.note)}“</p>` : ''}
           <div class="ci-controls">
@@ -407,7 +501,8 @@
   $('#pd-add').addEventListener('click', () => {
     const opts = readOptions();
     if (!opts) return;
-    addToCart({ id: pd.product.id, mat: pd.mat, color: pd.color, extra: [...pd.extra], note: $('#pd-note').value.trim(), qty: pd.qty, ...(Object.keys(opts).length ? { opts } : {}) });
+    addToCart({ id: pd.product.id, mat: pd.mat, color: pd.color, extra: [...pd.extra], note: $('#pd-note').value.trim(), qty: pd.qty,
+      ...(pd.product.sizes ? { size: pd.size } : {}), ...(Object.keys(opts).length ? { opts } : {}) });
     S.closeDrawer(pdEl);
     S.toast(t('„{name}“ е в количката', { name: pick(pd.product, 'name') }), t('Виж количката'));
   });
@@ -422,7 +517,9 @@
       const total = fmt(cartTotal());
       const items = cart.map((i, n) => {
         const p = byId(i.id);
-        return `${n + 1}. ${p.name} — ${materials[i.mat].label}, ${colorsOf(i).join(' + ')} × ${i.qty} = ${fmt(lineTotal(i))} (≈ ${p.grams} г/бр.)`
+        const s = sizeOf(p, i.size);
+        return `${n + 1}. ${p.name} — ${materials[i.mat].label}, ${colorsOf(i).join(' + ')} × ${i.qty} = ${fmt(lineTotal(i))} (≈ ${s.grams} г/бр.)`
+          + (p.sizes ? `\n   Размер: ${s.label}${s.dims ? ` (${dimsText(s.dims, s.approx, bg)})` : ''}` : '')
           + (p.assembly ? `\n   Сглобяване: ${p.assembly.minutes || 0} мин${p.assembly.items ? ` · Консумативи: ${S.assemblyItems(p.assembly, false)}` : ''}` : '')
           + (i.opts ? `\n   ${optsText(i, false)}` : '')
           + (i.note ? `\n   Бележка: ${i.note}` : '')
