@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <script>try{var l=new URLSearchParams(location.search).get('lang')||localStorage.getItem('sloy-lang');if(l==='en'){document.documentElement.classList.add('i18n-hide');setTimeout(function(){document.documentElement.classList.remove('i18n-hide')},1500)}}catch(e){}</script>
+  <title>Поръчка по идея — SLOY 3D</title>
+  <meta name="description" content="Прати файл, линк или идея и получи цена и срок до 24 часа.">
+  <meta name="theme-color" content="#f5f1e8">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SLOY 3D">
+  <meta property="og:title" content="Поръчка по идея — SLOY 3D">
+  <meta property="og:description" content="Прати файл, линк или идея и получи цена и срок до 24 часа.">
+  <meta property="og:locale" content="bg_BG">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Onest:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js" defer></script>
+  <script src="config.js" defer></script>
+  <script src="products.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Към съдържанието</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="index.html" aria-label="SLOY 3D — начало">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect x="3" y="21" width="26" height="6" rx="2" fill="currentColor" opacity=".45"/>
+          <rect x="7" y="13" width="18" height="6" rx="2" fill="currentColor" opacity=".75"/>
+          <rect x="11" y="5" width="10" height="6" rx="2" class="brand-top"/>
+        </svg>
+        <span class="brand-word">SLOY<span class="brand-3d">3D</span></span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Основна навигация">
+        <a class="nav-only-mobile" href="katalog.html">Каталог</a>
+        <a href="kalkulator.html">Калкулатор</a>
+        <a href="personalizirani.html">Персонализирани</a>
+        <a href="poruchka.html" aria-current="page">По твоя идея</a>
+        <a href="firmi.html">За фирми</a>
+        <div class="nav-more">
+          <button type="button" class="nav-more-btn" aria-expanded="false">Още</button>
+          <div class="nav-more-list">
+            <a href="materiali.html">Материали</a>
+            <a href="ceni.html">Цени</a>
+            <a href="vaprosi.html">Въпроси</a>
+          </div>
+        </div>
+      </nav>
+      <div class="lang-switch" role="group" aria-label="Език / Language">
+        <button type="button" data-lang="bg" aria-pressed="true">БГ</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <a class="btn btn-primary btn-sm header-cta" href="katalog.html">Каталог</a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav" aria-label="Меню">
+        <span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- 05 ПОРЪЧКА -->
+    <section class="section section-order section-first" id="poruchka">
+      <div class="wrap order-grid">
+        <div class="order-copy">
+          <p class="eyebrow">Поръчка по идея</p>
+          <h1>Разкажи ни какво искаш да принтираме.</h1>
+          <p class="section-lead">Попълни формата и ще ти върнем цена и срок до 24 часа. Предпочиташ директно? Пиши ни.</p>
+          <div class="direct">
+            <a data-viber href="#">
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.4 7.5L3.5 20.5l1.6-4.4A8.5 8.5 0 1 1 20.5 11.5Z"/><path d="M9 8.5c.3 2.9 2.6 5.2 5.5 5.5"/></svg></span>
+              <span><small>Viber</small><strong data-label>—</strong></span>
+            </a>
+            <a data-phone href="#">
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.5h3.5l2 5-2.5 1.5a11 11 0 0 0 6 6l1.5-2.5 5 2V19a2 2 0 0 1-2 2A17 17 0 0 1 3 5.5a2 2 0 0 1 2-2Z"/></svg></span>
+              <span><small>Обади се</small><strong data-label>—</strong></span>
+            </a>
+            <a data-messenger href="#" target="_blank" rel="noopener">
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3C7 3 3 6.7 3 11.3c0 2.6 1.3 4.9 3.3 6.4V21l3-1.7c.9.3 1.8.4 2.7.4 5 0 9-3.7 9-8.4S17 3 12 3Z"/><path d="m7.5 13.5 3-3 2.5 2 3.5-3"/></svg></span>
+              <span><small>Messenger</small><strong>SLOY 3D</strong></span>
+            </a>
+            <a data-email href="#">
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg></span>
+              <span><small>Имейл</small><strong data-label>—</strong></span>
+            </a>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <form id="order-form" novalidate>
+            <div class="field-row">
+              <label class="field"><span>Име *</span><input name="name" required autocomplete="name"></label>
+              <label class="field"><span>Телефон или имейл *</span><input name="contact" required autocomplete="tel"></label>
+            </div>
+
+            <fieldset class="field">
+              <legend>Какво ще принтираме?</legend>
+              <div class="chips">
+                <label class="chip"><input type="radio" name="category" value="Подарък / декорация"><span>Подарък / декорация</span></label>
+                <label class="chip"><input type="radio" name="category" value="Дом и бюро"><span>Дом и бюро</span></label>
+                <label class="chip"><input type="radio" name="category" value="Игри и играчки"><span>Игри и играчки</span></label>
+                <label class="chip"><input type="radio" name="category" value="Хоби и техника"><span>Хоби и техника</span></label>
+                <label class="chip"><input type="radio" name="category" value="Друго"><span>Друго</span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="field">
+              <legend>Какво имаш?</legend>
+              <div class="chips">
+                <label class="chip"><input type="radio" name="source" value="Файл"><span>Файл</span></label>
+                <label class="chip"><input type="radio" name="source" value="Линк към модел"><span>Линк към модел</span></label>
+                <label class="chip"><input type="radio" name="source" value="Само идея / снимка"><span>Само идея / снимка</span></label>
+              </div>
+            </fieldset>
+
+            <label class="field"><span>Линк към модела или файла</span><input name="link" type="url" inputmode="url" placeholder="printables.com/…, makerworld.com/…, Google Drive"></label>
+
+            <label class="field"><span>Опиши поръчката *</span><textarea name="message" rows="5" required placeholder="Какво е, размер, цвят, брой, до кога ти трябва…"></textarea></label>
+
+            <div class="field-row">
+              <label class="field"><span>Брой</span><input name="qty" type="number" min="1" value="1" inputmode="numeric"></label>
+              <label class="field"><span>Как да ти отговорим?</span>
+                <select name="reply">
+                  <option>Viber</option>
+                  <option>Телефон</option>
+                  <option>Имейл</option>
+                  <option>Messenger</option>
+                </select>
+              </label>
+            </div>
+
+            <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+            <p class="form-note">Файлът е на компютъра ти? Няма проблем — след заявката ще ти пишем и ще го пратиш по имейл или Viber.</p>
+
+            <label class="consent"><input type="checkbox" name="consent" required><span>Приемам <a href="obshti-usloviya.html" target="_blank">Общите условия</a> и <a href="poveritelnost.html" target="_blank">Политиката за поверителност</a> *</span></label>
+            <button class="btn btn-primary btn-block" type="submit">Изпрати заявката</button>
+            <p class="form-status" role="status" aria-live="polite"></p>
+            <p class="form-privacy">Използваме данните ти само за да отговорим на тази заявка.</p>
+          </form>
+
+          <div class="success" id="order-success" hidden>
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="24" r="20"/><path d="m15 24.5 6 6 12-13"/></svg>
+            <h3>Получихме заявката!</h3>
+            <p>Ще ти върнем цена и срок до 24 часа.</p>
+            <button class="btn btn-ghost" type="button" id="order-again">Нова заявка</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-grid">
+      <div>
+        <a class="brand" href="index.html" aria-label="SLOY 3D — начало">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="3" y="21" width="26" height="6" rx="2" fill="currentColor" opacity=".45"/>
+            <rect x="7" y="13" width="18" height="6" rx="2" fill="currentColor" opacity=".75"/>
+            <rect x="11" y="5" width="10" height="6" rx="2" class="brand-top"/>
+          </svg>
+          <span class="brand-word">SLOY<span class="brand-3d">3D</span></span>
+        </a>
+        <p class="footer-tag">3D печат по поръчка — подаръци, декорация, дом и хоби. Слой по слой.</p>
+      </div>
+      <div>
+        <h4>Контакти</h4>
+        <ul>
+          <li><a data-phone href="#"><span data-label></span></a></li>
+          <li><a data-email href="#"><span data-label></span></a></li>
+          <li><a data-facebook href="#" target="_blank" rel="noopener">Facebook</a></li>
+          <li><a data-messenger href="#" target="_blank" rel="noopener">Messenger</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Навигация</h4>
+        <ul>
+          <li><a href="index.html">Начало</a></li>
+          <li><a href="katalog.html">Каталог</a></li>
+          <li><a href="kalkulator.html">Калкулатор</a></li>
+          <li><a href="personalizirani.html">Персонализирани</a></li>
+          <li><a href="materiali.html">Материали</a></li>
+          <li><a href="ceni.html">Цени</a></li>
+          <li><a href="poruchka.html">По твоя идея</a></li>
+          <li><a href="firmi.html">За фирми</a></li>
+          <li><a href="vaprosi.html">Въпроси</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="wrap footer-bottom">
+      <span>© <span data-year>2026</span> SLOY 3D</span>
+      <span data-company></span>
+      <span class="legal-links"><a href="obshti-usloviya.html">Общи условия</a> · <a href="poveritelnost.html">Поверителност</a></span>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <script>try{var l=new URLSearchParams(location.search).get('lang')||localStorage.getItem('sloy-lang');if(l==='en'){document.documentElement.classList.add('i18n-hide');setTimeout(function(){document.documentElement.classList.remove('i18n-hide')},1500)}}catch(e){}</script>
+  <title>Каталог — SLOY 3D | 3D принтирани продукти по поръчка</title>
+  <meta name="description" content="Избери модел, материал и цвят — ние го принтираме и ти го изпращаме с Еконт или Спиди. Подаръци, декорация, играчки, органайзери за дома и още — над 120 модела.">
+  <meta name="theme-color" content="#f5f1e8">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SLOY 3D">
+  <meta property="og:title" content="Каталог — SLOY 3D">
+  <meta property="og:description" content="Избери модел, материал и цвят — ние го принтираме и ти го изпращаме.">
+  <meta property="og:locale" content="bg_BG">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Onest:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    } }
+  </script>
+  <script src="i18n.js" defer></script>
+  <script src="config.js" defer></script>
+  <script src="products.js" defer></script>
+  <script src="script.js" defer></script>
+  <script src="shop.js" defer></script>
+  <script src="fx.js" defer></script>
+  <script src="catalog.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Към съдържанието</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="index.html" aria-label="SLOY 3D — начало">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect x="3" y="21" width="26" height="6" rx="2" fill="currentColor" opacity=".45"/>
+          <rect x="7" y="13" width="18" height="6" rx="2" fill="currentColor" opacity=".75"/>
+          <rect x="11" y="5" width="10" height="6" rx="2" class="brand-top"/>
+        </svg>
+        <span class="brand-word">SLOY<span class="brand-3d">3D</span></span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Основна навигация">
+        <a class="nav-only-mobile" href="katalog.html" aria-current="page">Каталог</a>
+        <a href="kalkulator.html">Калкулатор</a>
+        <a href="personalizirani.html">Персонализирани</a>
+        <a href="poruchka.html">По твоя идея</a>
+        <a href="firmi.html">За фирми</a>
+        <div class="nav-more">
+          <button type="button" class="nav-more-btn" aria-expanded="false">Още</button>
+          <div class="nav-more-list">
+            <a href="materiali.html">Материали</a>
+            <a href="ceni.html">Цени</a>
+            <a href="vaprosi.html">Въпроси</a>
+          </div>
+        </div>
+      </nav>
+      <div class="lang-switch" role="group" aria-label="Език / Language">
+        <button type="button" data-lang="bg" aria-pressed="true">БГ</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <button class="btn btn-primary btn-sm header-cta cart-btn" type="button" data-open-cart aria-label="Количка">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2.2l2.3 11.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L21 8H6.2"/><circle cx="9.5" cy="20" r="1.3"/><circle cx="17.5" cy="20" r="1.3"/></svg>
+        <span class="cart-label">Количка</span>
+        <span class="cart-count" data-cart-count>0</span>
+      </button>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav" aria-label="Меню">
+        <span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="catalog-head">
+      <div class="wrap">
+        <p class="eyebrow mono" id="cat-eyebrow">Каталог</p>
+        <h1 id="cat-title">Избери модел. <span class="accent">Ние ще го принтираме.</span></h1>
+        <p class="lead" id="cat-lead">Избираш материал, цвят и брой, добавяш в количката и изпращаш поръчката. Преди да започнем печата, ще ти се обадим за потвърждение.</p>
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="catalog-search" placeholder="Търси: ваза, ключодържател, дракон…" aria-label="Търсене в каталога">
+        </label>
+        <div class="filters" id="filters" aria-label="Категории"></div>
+      </div>
+    </section>
+
+    <section class="catalog">
+      <div class="wrap">
+        <div class="products" id="products"></div>
+        <p class="no-results" id="no-results" hidden>Нищо не намерихме. Пробвай с друга дума — или <a href="poruchka.html">поръчай по твоя идея</a>.</p>
+        <aside class="catalog-cta">
+          <div>
+            <h2>Не намираш това, което търсиш?</h2>
+            <p>Прати ни файл, линк или идея — ще го намерим или проектираме за теб.</p>
+          </div>
+          <a class="btn btn-ghost" href="poruchka.html">Поръчай по твоя идея</a>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-grid">
+      <div>
+        <a class="brand" href="index.html" aria-label="SLOY 3D — начало">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="3" y="21" width="26" height="6" rx="2" fill="currentColor" opacity=".45"/>
+            <rect x="7" y="13" width="18" height="6" rx="2" fill="currentColor" opacity=".75"/>
+            <rect x="11" y="5" width="10" height="6" rx="2" class="brand-top"/>
+          </svg>
+          <span class="brand-word">SLOY<span class="brand-3d">3D</span></span>
+        </a>
+        <p class="footer-tag">3D печат по поръчка — подаръци, декорация, дом и хоби. Слой по слой.</p>
+        <p class="footer-credit">Моделите в каталога са на авторите си в MakerWorld и се използват според лиценза им (CC0, CC BY, CC BY-SA). Авторът е посочен при всеки продукт.</p>
+      </div>
+      <div>
+        <h4>Контакти</h4>
+        <ul>
+          <li><a data-phone href="#"><span data-label></span></a></li>
+          <li><a data-email href="#"><span data-label></span></a></li>
+          <li><a data-facebook href="#" target="_blank" rel="noopener">Facebook</a></li>
+          <li><a data-messenger href="#" target="_blank" rel="noopener">Messenger</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Навигация</h4>
+        <ul>
+          <li><a href="index.html">Начало</a></li>
+          <li><a href="katalog.html">Каталог</a></li>
+          <li><a href="kalkulator.html">Калкулатор</a></li>
+          <li><a href="personalizirani.html">Персонализирани</a></li>
+          <li><a href="materiali.html">Материали</a></li>
+          <li><a href="ceni.html">Цени</a></li>
+          <li><a href="poruchka.html">По твоя идея</a></li>
+          <li><a href="firmi.html">За фирми</a></li>
+          <li><a href="vaprosi.html">Въпроси</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="wrap footer-bottom">
+      <span>© <span data-year>2026</span> SLOY 3D</span>
+      <span data-company></span>
+      <span class="legal-links"><a href="obshti-usloviya.html">Общи условия</a> · <a href="poveritelnost.html">Поверителност</a></span>
+    </div>
+  </footer>
+
+  <!-- Панел на продукта -->
+  <div class="drawer" id="product-drawer" hidden>
+    <div class="drawer-backdrop" data-close></div>
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="pd-title">
+      <div class="drawer-top">
+        <button class="drawer-close" type="button" data-close aria-label="Затвори">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="pd-media">
+        <img id="pd-img" alt="" referrerpolicy="no-referrer">
+        <div class="pd-3d" id="pd-3d" hidden></div>
+        <div class="pd-views" id="pd-views" role="group" aria-label="Изглед" hidden>
+          <button type="button" data-view="3d" aria-pressed="true">3D</button>
+          <button type="button" data-view="photo" aria-pressed="false">Снимка</button>
+        </div>
+        <p class="pd-3d-hint mono" id="pd-3d-hint" hidden>Върти с мишката или пръста · приближавай с колелцето</p>
+      </div>
+      <div class="drawer-body">
+        <p class="pd-cat mono" id="pd-cat"></p>
+        <h2 id="pd-title"></h2>
+        <p class="pd-desc" id="pd-desc"></p>
+        <p class="pd-assembly" id="pd-assembly" hidden></p>
+
+        <div class="opt">
+          <div class="opt-head"><span>Материал</span><span class="opt-hint">задръж мишката върху материала за повече</span></div>
+          <div class="materials" id="pd-materials" role="radiogroup" aria-label="Материал"></div>
+          <p class="opt-note">★ — препоръчан за този продукт</p>
+        </div>
+
+        <div class="opt">
+          <div class="opt-head"><span>Цвят</span><span class="opt-value" id="pd-color-name"></span></div>
+          <div class="swatches" id="pd-colors" role="radiogroup" aria-label="Цвят"></div>
+          <p class="opt-note">Ако цветът липсва за избрания материал, ще ти предложим най-близкия.</p>
+        </div>
+
+        <div class="opt">
+          <div class="opt-head"><span>Брой цветове</span><span class="opt-hint">многоцветен печат с AMS</span></div>
+          <div class="chips" id="pd-ncolors" role="radiogroup" aria-label="Брой цветове"></div>
+          <div class="extra-colors" id="pd-extra-colors"></div>
+        </div>
+
+        <div class="opt opt-row">
+          <div>
+            <div class="opt-head"><span>Брой</span></div>
+            <div class="stepper">
+              <button type="button" id="pd-minus" aria-label="По-малко">−</button>
+              <input id="pd-qty" value="1" inputmode="numeric" aria-label="Брой">
+              <button type="button" id="pd-plus" aria-label="Повече">+</button>
+            </div>
+          </div>
+          <div class="pd-price-box">
+            <span class="opt-head">Цена</span>
+            <strong id="pd-price"></strong>
+            <span class="pd-unit" id="pd-unit"></span>
+          </div>
+        </div>
+
+        <label class="field pd-note"><span>Бележка (по желание)</span><textarea id="pd-note" rows="2" placeholder="Надпис, размер, специално желание…"></textarea></label>
+
+        <button class="btn btn-primary btn-block" type="button" id="pd-add">Добави в количката</button>
+        <p class="credit" id="pd-credit"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Количка и поръчка -->
+  <div class="drawer" id="cart-drawer" hidden>
+    <div class="drawer-backdrop" data-close></div>
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="cart-title">
+      <div class="drawer-top">
+        <button class="drawer-close" type="button" data-close aria-label="Затвори">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="drawer-body drawer-body-pad">
+        <div id="cart-view">
+          <h2 id="cart-title">Количка</h2>
+          <div id="cart-items"></div>
+          <div class="cart-empty" id="cart-empty">
+            <p>Количката е празна.</p>
+            <button class="btn btn-ghost" type="button" data-close>Разгледай каталога</button>
+          </div>
+          <div class="cart-summary" id="cart-summary">
+            <div class="order-extras" id="cart-extras"></div>
+            <div class="sum-row"><span>Общо</span><strong data-cart-total></strong></div>
+            <p class="sum-note">Доставка с Еконт или Спиди — безплатна над 30 €.</p>
+            <button class="btn btn-primary btn-block" type="button" id="to-checkout">Към поръчката</button>
+          </div>
+        </div>
+
+        <form id="checkout-form" novalidate hidden>
+          <button class="back-link" type="button" id="back-to-cart">← Обратно към количката</button>
+          <h2>Данни за доставка</h2>
+          <label class="field"><span>Име и фамилия *</span><input name="name" required autocomplete="name"></label>
+          <div class="field-row">
+            <label class="field"><span>Телефон *</span><input name="phone" type="tel" required autocomplete="tel" inputmode="tel"></label>
+            <label class="field"><span>Имейл</span><input name="email" type="email" autocomplete="email"></label>
+          </div>
+          <fieldset class="field">
+            <legend>Доставка *</legend>
+            <div class="chips">
+              <label class="chip"><input type="radio" name="delivery" value="Офис на Еконт" checked><span>Офис на Еконт</span></label>
+              <label class="chip"><input type="radio" name="delivery" value="Офис на Спиди"><span>Офис на Спиди</span></label>
+              <label class="chip"><input type="radio" name="delivery" value="До адрес"><span>До адрес</span></label>
+            </div>
+          </fieldset>
+          <div class="field-row">
+            <label class="field"><span>Град *</span><input name="city" required autocomplete="address-level2"></label>
+            <label class="field"><span data-address-label>Офис *</span><input name="address" required placeholder="напр. офис Младост 1"></label>
+          </div>
+          <fieldset class="field">
+            <legend>Плащане</legend>
+            <div class="chips">
+              <label class="chip"><input type="radio" name="payment" value="Наложен платеж" checked><span>Наложен платеж</span></label>
+              <label class="chip"><input type="radio" name="payment" value="Банков превод"><span>Банков превод</span></label>
+            </div>
+          </fieldset>
+          <label class="field"><span>Бележка към поръчката</span><textarea name="note" rows="2" placeholder="Срок, удобно време за обаждане…"></textarea></label>
+          <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+          <div class="sum-row checkout-sum"><span>Общо</span><strong data-cart-total></strong></div>
+          <div class="sum-lines" data-sum-lines></div>
+          <p class="sum-note">Ще ти се обадим за потвърждение, преди да започнем печата.</p>
+          <label class="consent"><input type="checkbox" name="consent" required><span>Приемам <a href="obshti-usloviya.html" target="_blank">Общите условия</a> и <a href="poveritelnost.html" target="_blank">Политиката за поверителност</a> *</span></label>
+          <button class="btn btn-primary btn-block" type="submit">Изпрати поръчката</button>
+          <p class="form-status" role="status" aria-live="polite"></p>
+          <p class="form-privacy">Използваме данните ти само за да изпълним и доставим поръчката.</p>
+        </form>
+
+        <div class="success" id="checkout-success" hidden>
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="24" r="20"/><path d="m15 24.5 6 6 12-13"/></svg>
+          <h3>Поръчката е изпратена!</h3>
+          <p>Номер: <strong class="mono" id="order-no"></strong><br>Ще ти се обадим до 24 часа за потвърждение.</p>
+          <button class="btn btn-ghost" type="button" data-close>Към каталога</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mat-tip" id="mat-tip" role="tooltip" hidden></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

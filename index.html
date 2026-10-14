@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <script>try{var l=new URLSearchParams(location.search).get('lang')||localStorage.getItem('sloy-lang');if(l==='en'){document.documentElement.classList.add('i18n-hide');setTimeout(function(){document.documentElement.classList.remove('i18n-hide')},1500)}}catch(e){}</script>
+  <title>SLOY 3D — 3D принтиране по поръчка | Подаръци, декорация, дом и хоби</title>
+  <meta name="description" content="3D печат по поръчка: подаръци, декорация, играчки, органайзери и части за дома и хобито. Пращаш файл, линк или идея — получаваш оферта до 24 часа. Доставка в цяла България.">
+  <meta name="theme-color" content="#f5f1e8">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SLOY 3D">
+  <meta property="og:title" content="SLOY 3D — Принтираме идеите ти. Слой по слой.">
+  <meta property="og:description" content="3D печат по поръчка за дома, за подарък и за хобито. Оферта до 24 часа, доставка в цяла България.">
+  <meta property="og:locale" content="bg_BG">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Onest:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js" defer></script>
+  <script src="config.js" defer></script>
+  <script src="products.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Към съдържанието</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="index.html" aria-label="SLOY 3D — начало">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect x="3" y="21" width="26" height="6" rx="2" fill="currentColor" opacity=".45"/>
+          <rect x="7" y="13" width="18" height="6" rx="2" fill="currentColor" opacity=".75"/>
+          <rect x="11" y="5" width="10" height="6" rx="2" class="brand-top"/>
+        </svg>
+        <span class="brand-word">SLOY<span class="brand-3d">3D</span></span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Основна навигация">
+        <a class="nav-only-mobile" href="katalog.html">Каталог</a>
+        <a href="kalkulator.html">Калкулатор</a>
+        <a href="personalizirani.html">Персонализирани</a>
+        <a href="poruchka.html">По твоя идея</a>
+        <a href="firmi.html">За фирми</a>
+        <div class="nav-more">
+          <button type="button" class="nav-more-btn" aria-expanded="false">Още</button>
+          <div class="nav-more-list">
+            <a href="materiali.html">Материали</a>
+            <a href="ceni.html">Цени</a>
+            <a href="vaprosi.html">Въпроси</a>
+          </div>
+        </div>
+      </nav>
+      <div class="lang-switch" role="group" aria-label="Език / Language">
+        <button type="button" data-lang="bg" aria-pressed="true">БГ</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <a class="btn btn-primary btn-sm header-cta" href="katalog.html">Каталог</a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav" aria-label="Меню">
+        <span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ГЕРОЙ -->
+    <section class="hero" id="top">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow mono">3D печат по поръчка · България</p>
+          <h1>Принтираме идеите ти.<br><span class="accent">Слой по слой.</span></h1>
+          <p class="lead">Избери модел от каталога, качи свой файл или просто ни разкажи идеята — ние я превръщаме в истински предмет.</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="katalog.html">Разгледай каталога</a>
+            <a class="btn btn-ghost" href="poruchka.html">Поръчай по твоя идея</a>
+          </div>
+          <ul class="hero-facts">
+            <li><strong>до 24 ч</strong><span>оферта</span></li>
+            <li><strong>25 материала</strong><span>от PLA до карбон</span></li>
+            <li><strong>Еконт · Спиди</strong><span>безплатна доставка над 30 €</span></li>
+          </ul>
+        </div>
+
+        <figure class="printer">
+          <div class="printer-frame">
+            <svg class="printer-svg" viewBox="0 0 240 330" role="img" aria-labelledby="printer-title">
+              <title id="printer-title">3D принтер печата шахматен топ слой по слой</title>
+              <defs>
+                <clipPath id="rook-clip">
+                  <path transform="translate(20 50)" d="M30 260H170V246Q170 240 164 240H160V230L146 222L136 92H150V78H145V12H120V30H112V12H88V30H80V12H55V78H50V92H64L54 222L40 230V240H36Q30 240 30 246Z"/>
+                </clipPath>
+                <clipPath id="build-clip"><rect id="build-rect" x="0" y="62" width="240" height="248"/></clipPath>
+                <pattern id="layer-lines" width="8" height="2" patternUnits="userSpaceOnUse">
+                  <rect id="filament" width="8" height="2" fill="#ff5ca8"/>
+                  <rect y="1.3" width="8" height=".7" fill="#000" opacity=".3"/>
+                </pattern>
+                <linearGradient id="fil-shade" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#fff" stop-opacity=".25"/>
+                  <stop offset=".38" stop-color="#fff" stop-opacity="0"/>
+                  <stop offset="1" stop-color="#000" stop-opacity=".5"/>
+                </linearGradient>
+              </defs>
+              <rect class="plate" x="6" y="310" width="228" height="12" rx="3"/>
+              <path class="ghost" transform="translate(20 50)" d="M30 260H170V246Q170 240 164 240H160V230L146 222L136 92H150V78H145V12H120V30H112V12H88V30H80V12H55V78H50V92H64L54 222L40 230V240H36Q30 240 30 246Z"/>
+              <g id="part" clip-path="url(#rook-clip)">
+                <g clip-path="url(#build-clip)">
+                  <rect x="0" y="50" width="240" height="270" fill="url(#layer-lines)"/>
+                  <rect x="50" y="50" width="140" height="270" fill="url(#fil-shade)"/>
+                </g>
+                <rect id="hot-layer" class="hot" x="0" y="62" width="240" height="2" style="opacity:0"/>
+              </g>
+              <g id="gantry" transform="translate(0 44)">
+                <rect class="rail" x="0" y="-41" width="240" height="6" rx="3"/>
+              </g>
+              <g id="head" transform="translate(206 44)">
+                <rect class="head-body" x="-15" y="-46" width="30" height="26" rx="4"/>
+                <rect class="head-block" x="-9" y="-20" width="18" height="9" rx="1.5"/>
+                <path class="head-tip" d="M-5 -11H5L1.6 -1H-1.6Z"/>
+                <circle class="head-led" cx="8.5" cy="-38" r="2"/>
+              </g>
+            </svg>
+            <figcaption class="readout mono" aria-hidden="true">
+              <span class="status done" id="r-status">ГОТОВО</span>
+              <span>СЛОЙ <b id="r-layer">124</b>/124</span>
+              <span>Z <b id="r-z">24.80</b> мм</span>
+              <span><b id="r-temp">215</b> °C</span>
+            </figcaption>
+          </div>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ПРАЗНИК (показва се сам месец преди празника) -->
+    <section class="season-banner" id="season-banner" hidden></section>
+
+    <!-- 01 КАКВО ПРАВИМ -->
+    <section class="section" id="uslugi">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Какво правим</p>
+          <h2>Принтираме за дома, за подарък и за хобито.</h2>
+          <p class="section-lead">Над 120 готови модела в каталога — или каквото си намислил. Печатаме прецизно на Bambu Lab H2D, в цвета и материала, които пасват на задачата.</p>
+        </header>
+
+        <div class="cards">
+          <article class="card">
+            <div class="card-visual" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="10" y="27" width="44" height="29" rx="3"/>
+                <rect x="6" y="18" width="52" height="9" rx="2"/>
+                <path d="M32 18v38" opacity=".55"/>
+                <path d="M32 18c-4-7-14-10-14-4.5 0 3.5 7 4.5 14 4.5ZM32 18c4-7 14-10 14-4.5 0 3.5-7 4.5-14 4.5Z"/>
+              </svg>
+            </div>
+            <div class="card-body">
+              <h3>Подаръци и декорация</h3>
+              <p>Персонални неща, които няма да намериш в магазина.</p>
+              <ul class="tags"><li>Вази и купи</li><li>Ключодържатели</li><li>Цветя</li><li>Празнична украса</li></ul>
+              <a class="card-link" href="katalog.html#gifts">Виж в каталога →</a>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-visual" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 31 32 10l25 21"/>
+                <path d="M14 26v29h36V26"/>
+                <path d="M27 55V41h10v14" opacity=".55"/>
+              </svg>
+            </div>
+            <div class="card-body">
+              <h3>Дом и бюро</h3>
+              <p>Малки неща, които правят всеки ден по-подреден.</p>
+              <ul class="tags"><li>Органайзери</li><li>Стойки за телефон</li><li>Кухня</li><li>Кабели</li></ul>
+              <a class="card-link" href="katalog.html#home">Виж в каталога →</a>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-visual" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M32 4 56 18v28L32 60 8 46V18Z"/>
+                <path d="M32 17 47 42H17Z"/>
+                <path d="M32 4v13M8 18l24-1 24 1M8 18l9 24M56 18l-9 24M8 46l9-4M56 46l-9-4M32 60 17 42M32 60l15-18" opacity=".55"/>
+              </svg>
+            </div>
+            <div class="card-body">
+              <h3>Игри и играчки</h3>
+              <p>Кули за зарове, подвижни фигури и фиджети за неспокойни ръце.</p>
+              <ul class="tags"><li>Кули за зарове</li><li>Органайзери за игри</li><li>Подвижни фигури</li><li>Фиджети</li></ul>
+              <a class="card-link" href="katalog.html#toys">Виж в каталога →</a>
+            </div>
+          </article>
+
+          <article class="card card-decor">
+            <div class="card-visual" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="25" y="25" width="14" height="14" rx="3"/>
+                <path d="M25 25 17 17M39 25l8-8M25 39l-8 8M39 39l8 8"/>
+                <circle cx="13" cy="13" r="8.5"/><circle cx="51" cy="13" r="8.5"/><circle cx="13" cy="51" r="8.5"/><circle cx="51" cy="51" r="8.5"/>
+              </svg>
+            </div>
+            <div class="card-body">
+              <h3>Хоби и техника</h3>
+              <p>Части и аксесоари за хобито ти — дронове, камери, растения и още.</p>
+              <ul class="tags"><li>FPV и дронове</li><li>Екшън камери</li><li>Растения</li><li>Airsoft</li></ul>
+              <a class="card-link" href="katalog.html#fpv">Виж в каталога →</a>
+            </div>
+          </article>
+
+          <article class="card card-custom">
+            <div class="card-visual" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M30 8 50 19v22L30 52 10 41V19Z"/>
+                <path d="M10 19l20 11 20-11M30 30v22" opacity=".55"/>
+                <path d="M46 54h14M53 47v14"/>
+              </svg>
+            </div>
+            <div class="card-body">
+              <h3>По поръчка — от идея до предмет</h3>
+              <div class="paths">
+                <div class="path"><strong>Имаш файл?</strong><span>Качи STL в <a href="kalkulator.html">калкулатора</a> и виж цената веднага.</span></div>
+                <div class="path"><strong>Имаш линк?</strong><span>Проверяваме модела и лиценза и го печатаме.</span></div>
+                <div class="path"><strong>Имаш само идея?</strong><span>Намираме готов модел или го проектираме за теб.</span></div>
+              </div>
+              <a class="link-arrow" href="poruchka.html">Разкажи ни идеята <span aria-hidden="true">→</span></a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ОЩЕ -->
+    <section class="section section-hub">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Още</p>
+          <h2>Разгледай по-подробно</h2>
+        </header>
+        <div class="hub">
+          <a class="hub-card" href="kalkulator.html"><strong>Калкулатор</strong><span>Качи STL файл и виж цената веднага.</span></a>
+          <a class="hub-card" href="materiali.html"><strong>Материали</strong><span>25 материала — кой за какво е най-подходящ.</span></a>
+          <a class="hub-card" href="ceni.html"><strong>Цени и как работи</strong><span>Колко струва и как поръчката стига до теб.</span></a>
+          <a class="hub-card" href="personalizirani.html"><strong>Персонализирани</strong><span>Литофания от снимка, ключодържател с име, табела.</span></a>
+          <a class="hub-card" href="firmi.html"><strong>За фирми</strong><span>Лога, серии, прототипи и резервни части.</span></a>
+          <a class="hub-card" href="vaprosi.html"><strong>Въпроси</strong><span>Файлове, срокове, плащане и доставка.</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-grid">
+      <div>
+        <a class="brand" href="index.html" aria-label="SLOY 3D — начало">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="3" y="21" width="26" height="6" rx="2" fill="currentColor" opacity=".45"/>
+            <rect x="7" y="13" width="18" height="6" rx="2" fill="currentColor" opacity=".75"/>
+            <rect x="11" y="5" width="10" height="6" rx="2" class="brand-top"/>
+          </svg>
+          <span class="brand-word">SLOY<span class="brand-3d">3D</span></span>
+        </a>
+        <p class="footer-tag">3D печат по поръчка — подаръци, декорация, дом и хоби. Слой по слой.</p>
+      </div>
+      <div>
+        <h4>Контакти</h4>
+        <ul>
+          <li><a data-phone href="#"><span data-label></span></a></li>
+          <li><a data-email href="#"><span data-label></span></a></li>
+          <li><a data-facebook href="#" target="_blank" rel="noopener">Facebook</a></li>
+          <li><a data-messenger href="#" target="_blank" rel="noopener">Messenger</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Навигация</h4>
+        <ul>
+          <li><a href="index.html">Начало</a></li>
+          <li><a href="katalog.html">Каталог</a></li>
+          <li><a href="kalkulator.html">Калкулатор</a></li>
+          <li><a href="personalizirani.html">Персонализирани</a></li>
+          <li><a href="materiali.html">Материали</a></li>
+          <li><a href="ceni.html">Цени</a></li>
+          <li><a href="poruchka.html">По твоя идея</a></li>
+          <li><a href="firmi.html">За фирми</a></li>
+          <li><a href="vaprosi.html">Въпроси</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="wrap footer-bottom">
+      <span>© <span data-year>2026</span> SLOY 3D</span>
+      <span data-company></span>
+      <span class="legal-links"><a href="obshti-usloviya.html">Общи условия</a> · <a href="poveritelnost.html">Поверителност</a></span>
+    </div>
+  </footer>
+</body>
+</html>

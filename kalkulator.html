@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <script>try{var l=new URLSearchParams(location.search).get('lang')||localStorage.getItem('sloy-lang');if(l==='en'){document.documentElement.classList.add('i18n-hide');setTimeout(function(){document.documentElement.classList.remove('i18n-hide')},1500)}}catch(e){}</script>
+  <title>Калкулатор за 3D печат — SLOY 3D | Качи STL и виж цената</title>
+  <meta name="description" content="Качи STL файл, виж 3D модела и цената веднага. Избираш материал, цвят, здравина и размер — и поръчваш с доставка в цяла България.">
+  <meta name="theme-color" content="#f5f1e8">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SLOY 3D">
+  <meta property="og:title" content="Калкулатор за 3D печат — SLOY 3D">
+  <meta property="og:description" content="Качи STL файл и виж цената веднага.">
+  <meta property="og:locale" content="bg_BG">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Onest:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    } }
+  </script>
+  <script src="i18n.js" defer></script>
+  <script src="config.js" defer></script>
+  <script src="products.js" defer></script>
+  <script src="script.js" defer></script>
+  <script src="shop.js" defer></script>
+  <script src="calculator.js" type="module"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Към съдържанието</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="index.html" aria-label="SLOY 3D — начало">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect x="3" y="21" width="26" height="6" rx="2" fill="currentColor" opacity=".45"/>
+          <rect x="7" y="13" width="18" height="6" rx="2" fill="currentColor" opacity=".75"/>
+          <rect x="11" y="5" width="10" height="6" rx="2" class="brand-top"/>
+        </svg>
+        <span class="brand-word">SLOY<span class="brand-3d">3D</span></span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Основна навигация">
+        <a class="nav-only-mobile" href="katalog.html">Каталог</a>
+        <a href="kalkulator.html" aria-current="page">Калкулатор</a>
+        <a href="personalizirani.html">Персонализирани</a>
+        <a href="poruchka.html">По твоя идея</a>
+        <a href="firmi.html">За фирми</a>
+        <div class="nav-more">
+          <button type="button" class="nav-more-btn" aria-expanded="false">Още</button>
+          <div class="nav-more-list">
+            <a href="materiali.html">Материали</a>
+            <a href="ceni.html">Цени</a>
+            <a href="vaprosi.html">Въпроси</a>
+          </div>
+        </div>
+      </nav>
+      <div class="lang-switch" role="group" aria-label="Език / Language">
+        <button type="button" data-lang="bg" aria-pressed="true">БГ</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <a class="btn btn-primary btn-sm header-cta" href="katalog.html">Каталог</a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav" aria-label="Меню">
+        <span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="calc-head">
+      <div class="wrap">
+        <p class="eyebrow">Калкулатор</p>
+        <h1>Качи модел. <span class="accent">Виж цената веднага.</span></h1>
+        <p class="lead">Качваш STL файл, избираш материал, цвят и здравина — и виждаш 3D модела и цената. Сумата е ориентировъчна; потвърждаваме я, преди да започнем печата.</p>
+      </div>
+    </section>
+
+    <section class="calc" id="dropzone">
+      <div class="wrap">
+        <input type="file" id="file-input" accept=".stl" multiple hidden>
+        <p class="calc-error" id="calc-error" role="alert" hidden></p>
+
+        <div class="calc-empty" id="calc-empty">
+          <div class="drop-box">
+            <svg class="drop-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M32 6 54 18v28L32 58 10 46V18Z"/><path d="M10 18l22 12 22-12M32 30v28" opacity=".5"/>
+            </svg>
+            <h2>Пусни STL файл тук</h2>
+            <p>или</p>
+            <button class="btn btn-primary" type="button" data-pick-file>Избери файл</button>
+            <p class="drop-note">Само .stl · до 50 MB · може няколко файла наведнъж</p>
+            <button class="link-btn" type="button" id="try-sample">Нямаш файл? Пробвай с примерен модел →</button>
+          </div>
+          <p class="calc-alt">Имаш 3MF, STEP, снимка или само идея? <a href="poruchka.html">Прати ги през формата за поръчка</a>.</p>
+        </div>
+
+        <div class="calc-stage" id="calc-stage" hidden>
+          <div class="calc-main">
+            <div class="viewer-box">
+              <div class="viewer" id="viewer"></div>
+              <span class="viewer-dims" id="viewer-dims"></span>
+              <button class="viewer-reset" id="viewer-reset" type="button">Центрирай</button>
+              <p class="viewer-hint">Върти с мишката или пръста · приближавай с колелцето</p>
+            </div>
+            <div class="files">
+              <div class="file-list" id="file-list"></div>
+              <button class="btn btn-ghost btn-sm" type="button" data-pick-file>+ Добави файл</button>
+            </div>
+          </div>
+
+          <aside class="calc-panel" aria-label="Настройки">
+            <p class="cf-label">Настройки за</p>
+            <h2 id="cf-name"></h2>
+            <div class="cf-stats"><span id="cf-dims"></span><span id="cf-volume"></span></div>
+            <span class="fit-badge" id="cf-fit"></span>
+
+            <div class="opt">
+              <div class="opt-head"><span>Материал</span><span class="opt-hint">задръж мишката върху материала за повече</span></div>
+              <div class="materials" id="cf-materials" role="radiogroup" aria-label="Материал"></div>
+            </div>
+
+            <div class="opt">
+              <div class="opt-head"><span>Цвят</span><span class="opt-value" id="cf-color-name"></span></div>
+              <div class="swatches" id="cf-colors" role="radiogroup" aria-label="Цвят"></div>
+            </div>
+
+            <div class="opt">
+              <div class="opt-head"><span>Брой цветове</span><span class="opt-hint">многоцветен печат с AMS</span></div>
+              <div class="chips" id="cf-ncolors" role="radiogroup" aria-label="Брой цветове"></div>
+              <div class="extra-colors" id="cf-extra-colors"></div>
+            </div>
+
+            <div class="opt">
+              <div class="opt-head"><span>Здравина</span></div>
+              <div class="chips" id="cf-infill" role="radiogroup" aria-label="Здравина"></div>
+              <p class="opt-note" id="cf-infill-hint"></p>
+            </div>
+
+            <div class="opt">
+              <div class="opt-head"><span>Размер</span></div>
+              <div class="scale-row">
+                <input type="range" id="cf-scale-range" min="25" max="300" step="5" value="100" aria-label="Размер в проценти">
+                <label class="scale-num"><input type="number" id="cf-scale" min="10" max="5000" value="100" inputmode="numeric" aria-label="Размер в проценти"><span>%</span></label>
+              </div>
+            </div>
+
+            <div class="opt opt-row">
+              <div>
+                <div class="opt-head"><span>Брой</span></div>
+                <div class="stepper">
+                  <button type="button" id="cf-minus" aria-label="По-малко">−</button>
+                  <input id="cf-qty" value="1" inputmode="numeric" aria-label="Брой">
+                  <button type="button" id="cf-plus" aria-label="Повече">+</button>
+                </div>
+              </div>
+              <div class="pd-price-box">
+                <span class="opt-head">Цена</span>
+                <strong id="cf-line"></strong>
+                <span class="pd-unit"><span id="cf-unit"></span> · <span id="cf-weight"></span></span>
+              </div>
+            </div>
+
+            <div class="calc-total">
+              <div class="order-extras" id="calc-extras"></div>
+              <div class="sum-row"><span>Общо</span><strong data-calc-total></strong></div>
+              <p class="sum-note">Цената е ориентировъчна — потвърждаваме я преди печата. Доставката е безплатна над 30 €.</p>
+              <button class="btn btn-primary btn-block" id="to-order" type="button">Поръчай</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section calc-how">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Как смятаме</p>
+          <h2>Откъде идва цената?</h2>
+        </header>
+        <ol class="steps">
+          <li class="step">
+            <span class="step-num">01</span>
+            <h3>Тегло</h3>
+            <p>Смятаме колко пластмаса влиза в модела — стени, капаци и вътрешно запълване според здравината.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">02</span>
+            <h3>Материал</h3>
+            <p>Всеки материал има различна цена. PLA е най-достъпният, TPU — най-скъпият.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">03</span>
+            <h3>Брой и размер</h3>
+            <p>По-голям модел и повече бройки — повече материал. Минималната поръчка е 5 €.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">04</span>
+            <h3>Потвърждение</h3>
+            <p>Проверяваме файла и ти пишем, преди да започнем. Ако цената се промени, питаме първо.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-grid">
+      <div>
+        <a class="brand" href="index.html" aria-label="SLOY 3D — начало">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="3" y="21" width="26" height="6" rx="2" fill="currentColor" opacity=".45"/>
+            <rect x="7" y="13" width="18" height="6" rx="2" fill="currentColor" opacity=".75"/>
+            <rect x="11" y="5" width="10" height="6" rx="2" class="brand-top"/>
+          </svg>
+          <span class="brand-word">SLOY<span class="brand-3d">3D</span></span>
+        </a>
+        <p class="footer-tag">3D печат по поръчка — подаръци, декорация, дом и хоби. Слой по слой.</p>
+      </div>
+      <div>
+        <h4>Контакти</h4>
+        <ul>
+          <li><a data-phone href="#"><span data-label></span></a></li>
+          <li><a data-email href="#"><span data-label></span></a></li>
+          <li><a data-facebook href="#" target="_blank" rel="noopener">Facebook</a></li>
+          <li><a data-messenger href="#" target="_blank" rel="noopener">Messenger</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Навигация</h4>
+        <ul>
+          <li><a href="index.html">Начало</a></li>
+          <li><a href="katalog.html">Каталог</a></li>
+          <li><a href="kalkulator.html">Калкулатор</a></li>
+          <li><a href="personalizirani.html">Персонализирани</a></li>
+          <li><a href="materiali.html">Материали</a></li>
+          <li><a href="ceni.html">Цени</a></li>
+          <li><a href="poruchka.html">По твоя идея</a></li>
+          <li><a href="firmi.html">За фирми</a></li>
+          <li><a href="vaprosi.html">Въпроси</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="wrap footer-bottom">
+      <span>© <span data-year>2026</span> SLOY 3D</span>
+      <span data-company></span>
+      <span class="legal-links"><a href="obshti-usloviya.html">Общи условия</a> · <a href="poveritelnost.html">Поверителност</a></span>
+    </div>
+  </footer>
+
+  <!-- Поръчка -->
+  <div class="drawer" id="order-drawer" hidden>
+    <div class="drawer-backdrop" data-close></div>
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="order-title">
+      <div class="drawer-top">
+        <button class="drawer-close" type="button" data-close aria-label="Затвори">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="drawer-body drawer-body-pad">
+        <form id="checkout-form" novalidate>
+          <h2 id="order-title">Поръчка</h2>
+          <ul class="order-items" id="order-items"></ul>
+          <div class="sum-row checkout-sum"><span>Общо</span><strong data-calc-total></strong></div>
+          <div class="sum-lines" data-sum-lines></div>
+          <p class="sum-note">Ще ти се обадим за потвърждение, преди да започнем печата.</p>
+
+          <label class="field"><span>Име и фамилия *</span><input name="name" required autocomplete="name"></label>
+          <div class="field-row">
+            <label class="field"><span>Телефон *</span><input name="phone" type="tel" required autocomplete="tel" inputmode="tel"></label>
+            <label class="field"><span>Имейл</span><input name="email" type="email" autocomplete="email"></label>
+          </div>
+          <fieldset class="field">
+            <legend>Доставка *</legend>
+            <div class="chips">
+              <label class="chip"><input type="radio" name="delivery" value="Офис на Еконт" checked><span>Офис на Еконт</span></label>
+              <label class="chip"><input type="radio" name="delivery" value="Офис на Спиди"><span>Офис на Спиди</span></label>
+              <label class="chip"><input type="radio" name="delivery" value="До адрес"><span>До адрес</span></label>
+            </div>
+          </fieldset>
+          <div class="field-row">
+            <label class="field"><span>Град *</span><input name="city" required autocomplete="address-level2"></label>
+            <label class="field"><span data-address-label>Офис *</span><input name="address" required placeholder="напр. офис Младост 1"></label>
+          </div>
+          <fieldset class="field">
+            <legend>Плащане</legend>
+            <div class="chips">
+              <label class="chip"><input type="radio" name="payment" value="Наложен платеж" checked><span>Наложен платеж</span></label>
+              <label class="chip"><input type="radio" name="payment" value="Банков превод"><span>Банков превод</span></label>
+            </div>
+          </fieldset>
+          <label class="field"><span>Бележка към поръчката</span><textarea name="note" rows="2" placeholder="Срок, специални изисквания…"></textarea></label>
+          <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <p class="form-note" id="file-note">След поръчката ще ти пишем — пращаш STL файла по имейл или Viber с номера на поръчката.</p>
+          <label class="consent"><input type="checkbox" name="consent" required><span>Приемам <a href="obshti-usloviya.html" target="_blank">Общите условия</a> и <a href="poveritelnost.html" target="_blank">Политиката за поверителност</a> *</span></label>
+          <button class="btn btn-primary btn-block" type="submit">Изпрати поръчката</button>
+          <p class="form-status" role="status" aria-live="polite"></p>
+          <p class="form-privacy">Използваме данните и файловете ти само за да изпълним и доставим поръчката.</p>
+        </form>
+
+        <div class="success" id="checkout-success" hidden>
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="24" r="20"/><path d="m15 24.5 6 6 12-13"/></svg>
+          <h3>Поръчката е изпратена!</h3>
+          <p>Номер: <strong id="order-no"></strong><br>Ще ти се обадим до 24 часа за потвърждение.</p>
+          <p class="form-note" id="success-file-note">Сега ни прати STL файла по имейл или Viber и напиши номера на поръчката.</p>
+          <button class="btn btn-ghost" type="button" data-close>Затвори</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mat-tip" id="mat-tip" role="tooltip" hidden></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
