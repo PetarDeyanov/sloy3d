@@ -25,7 +25,10 @@
   // Празничните продукти се виждат само в сезона си, освен ако са always
   const isAvailable = p => !p.seasons || p.always || p.seasons.includes(activeSeason);
   const catOrder = Object.keys(categories);
-  const shown = products.filter(isAvailable).sort((a, b) => catOrder.indexOf(a.cat) - catOrder.indexOf(b.cat));
+  const subcats = window.SLOY_CATALOG.subcategories || {};
+  const subIdx = p => Object.keys(subcats[p.cat] || {}).indexOf(p.sub);
+  const subLabel = p => subcats[p.cat]?.[p.sub];
+  const shown = products.filter(isAvailable).sort((a, b) => catOrder.indexOf(a.cat) - catOrder.indexOf(b.cat) || subIdx(a) - subIdx(b));
 
   // ---------- Количка (пази се в браузъра) ----------
   const CART_KEY = 'sloy-cart';
@@ -61,7 +64,7 @@
   document.addEventListener('error', e => {
     if (e.target.tagName === 'IMG') e.target.parentElement.classList.add('noimg');
   }, true);
-  const searchText = p => [p.name, p.desc, p.en?.name, p.en?.desc, categories[p.cat], t(categories[p.cat]), ...(p.seasons || []).map(s => pick(seasons[s], 'label'))].join(' ').toLowerCase();
+  const searchText = p => [p.name, p.desc, p.en?.name, p.en?.desc, categories[p.cat], t(categories[p.cat]), subLabel(p), subLabel(p) && t(subLabel(p)), ...(p.seasons || []).map(s => pick(seasons[s], 'label'))].join(' ').toLowerCase();
 
   // ---------- Филтри, празници и търсене ----------
   const head = $('.catalog-head');
@@ -69,6 +72,8 @@
   const filters = $('#filters');
   const search = $('#catalog-search');
   let currentFilter = 'all';
+  let currentSub = null;   // подкатегория в избраната категория
+  const subBox = $('#subfilters');
 
   const renderFilters = () => {
     const keys = [['all', t('Всички'), shown.length]];
@@ -79,6 +84,18 @@
     });
     filters.innerHTML = keys.map(([key, label, n, isSeason]) => `
       <button class="filter${isSeason ? ' filter-season' : ''}" type="button" data-filter="${key}" aria-pressed="${key === currentFilter}">${label}<span class="n">${n}</span></button>`).join('');
+  };
+
+  // втори ред: подкатегориите на избраната категория (само ако са поне 2 с продукти)
+  const renderSubs = () => {
+    const inCat = shown.filter(p => p.cat === currentFilter);
+    const keys = Object.entries(subcats[currentFilter] || {})
+      .map(([k, v]) => [k, t(v), inCat.filter(p => p.sub === k).length])
+      .filter(([, , n]) => n);
+    subBox.hidden = keys.length < 2;
+    if (subBox.hidden) return;
+    subBox.innerHTML = [['', t('Всички'), inCat.length], ...keys].map(([key, label, n]) => `
+      <button class="subfilter" type="button" data-sub="${key}" aria-pressed="${(currentSub || '') === key}">${label}<span class="n">${n}</span></button>`).join('');
   };
 
   const renderHead = () => {
@@ -102,7 +119,7 @@
     let shown = 0;
     $$('.product', grid).forEach(el => {
       const p = byId(el.dataset.id);
-      const inFilter = currentFilter === 'all' || p.cat === currentFilter || p.seasons?.includes(currentFilter);
+      const inFilter = (currentFilter === 'all' || p.cat === currentFilter || p.seasons?.includes(currentFilter)) && (!currentSub || p.sub === currentSub);
       el.hidden = !(inFilter && (!q || searchText(p).includes(q)));
       if (!el.hidden) shown++;
     });
@@ -110,15 +127,25 @@
   };
 
   // origin = бутонът, от който да изскочат празничните анимации (fx.js)
+  // f = 'категория' или 'категория/подкатегория' (напр. airsoft/gear)
   const setFilter = (f, origin) => {
-    currentFilter = categories[f] || (f && f === activeSeason) ? f : 'all';
+    const [cat, subKey] = String(f || '').split('/');
+    currentFilter = categories[cat] || (cat && cat === activeSeason) ? cat : 'all';
+    currentSub = subKey && subcats[currentFilter]?.[subKey] ? subKey : null;
     renderFilters();
+    renderSubs();
     renderHead();
     apply();
     if (seasons[currentFilter]) window.SLOY_FX?.play(currentFilter, origin || $('#cat-title'));
     else window.SLOY_FX?.stop();
   };
-  const syncHash = () => history.replaceState(null, '', currentFilter === 'all' ? location.pathname : '#' + currentFilter);
+  const syncHash = () => history.replaceState(null, '', currentFilter === 'all' ? location.pathname : '#' + currentFilter + (currentSub ? '/' + currentSub : ''));
+  subBox.addEventListener('click', e => {
+    const b = e.target.closest('.subfilter');
+    if (!b) return;
+    setFilter(currentFilter + (b.dataset.sub ? '/' + b.dataset.sub : ''));
+    syncHash();
+  });
   filters.addEventListener('click', e => {
     const b = e.target.closest('.filter');
     if (!b) return;
@@ -207,7 +234,7 @@
     img.parentElement.classList.remove('noimg');
     img.src = p.mw.img;
     img.alt = pick(p, 'name');
-    $('#pd-cat').textContent = t(categories[p.cat]);
+    $('#pd-cat').textContent = t(categories[p.cat]) + (subLabel(p) ? ' · ' + t(subLabel(p)) : '');
     $('#pd-title').textContent = pick(p, 'name');
     $('#pd-desc').textContent = pick(p, 'desc');
     const asm = p.assembly && S.assemblyItems(p.assembly);
