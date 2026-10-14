@@ -31,7 +31,6 @@ window.SLOY_CATALOG = (() => {
       ['Google', ['Pixel 10 Pro', 'Pixel 10', 'Pixel 9 Pro', 'Pixel 9', 'Pixel 8']],
     ],
   };
-  const PHONE_CASE = { key: 'case', label: 'Кейс на телефона', choices: ['Без кейс', 'С тънък кейс', 'С дебел кейс'] };
   const STATUE = ['PLA Matte', 'PLA Silk', 'PLA', 'PLA Galaxy'];   // фигурки и скулптури
   const GHOST = ['PLA Glow', 'PLA', 'PLA Matte', 'PLA Translucent'];   // призраци — и светещи на тъмно
 
@@ -546,9 +545,9 @@ window.SLOY_CATALOG = (() => {
         name: 'MOLLE кука', desc: 'Кука за ръкавици, очила или шапка, закачена на MOLLE.',
         en: { name: "MOLLE hook", desc: "A hook for gloves, glasses or a cap, attached to MOLLE." },
         mw: mw(823789, 'SamMi', 'BY-SA', 'Molle clip Hook V2', 'DSM00000000823789/design/2024-11-26_jh5516g1ihto.jpg') },
-      { id: 'molle-phone', cat: 'airsoft', sub: 'gear', grams: 87, hours: 3.7, materials: ['PETG', 'TPU'], assembly: { minutes: 5 }, options: [PHONE, PHONE_CASE],
-        name: 'MOLLE панел с калъф за телефон', desc: 'Телефонът е на гърдите ти — за карта, връзка с отбора и снимки. Калъфът се прави по размера на твоя телефон — избери модела отдолу.',
-        en: { name: "MOLLE panel with phone pouch", desc: "Your phone on your chest — for maps, team comms and photos. The pouch is made to fit your phone — pick the model below." },
+      { id: 'molle-phone', cat: 'airsoft', sub: 'gear', grams: 87, hours: 3.7, materials: ['PETG', 'TPU'], assembly: { minutes: 5 }, options: [PHONE],
+        name: 'MOLLE панел с калъф за телефон', desc: 'Телефонът е на гърдите ти — за карта, връзка с отбора и снимки. Калъфът се прави по размера на телефона без кейс — избери модела отдолу.',
+        en: { name: "MOLLE panel with phone pouch", desc: "Your phone on your chest — for maps, team comms and photos. The pouch is made to fit your phone without a case — pick the model below." },
         mw: mw(1949318, 'LiuHuo·Ye', 'BY', '战术挂板/手机包（适配molle系统）', 'DSM00000001949318/design/2025-10-14_9833ed8365779.jpg') },
       { id: 'picatinny-gopro', cat: 'airsoft', sub: 'gear', grams: 40, maxColors: 2, materials: ['PETG', 'PCTG', 'ASA', 'PLA-CF', 'PA-CF'], assembly: { minutes: 2, items: { gopro: 1 } },
         name: 'GoPro стойка за Picatinny шина', desc: 'Закрепваш екшън камерата на шината на репликата и снимаш игрите.',
