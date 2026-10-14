@@ -2,7 +2,7 @@
 // форма за доставка и изпращане на поръчката.
 window.SLOY_SHOP = (() => {
   const cfg = window.SLOY_CONFIG || {};
-  const { materials, materialGroups, colors, pricing, consumables, colorPrices = {} } = window.SLOY_CATALOG;
+  const { materials, materialFamilies, colors, pricing, consumables, colorPrices = {} } = window.SLOY_CATALOG;
   const { t, lang } = window.SLOY_I18N;
   const scriptUrl = cfg.appsScriptUrl || cfg.fileUploadUrl || '';   // Google Apps Script (ако е настроен)
   const $ = (s, el = document) => el.querySelector(s);
@@ -80,22 +80,50 @@ window.SLOY_SHOP = (() => {
   };
 
   // ---------- Бутони за материал и цвят ----------
-  const chipHTML = (m, selected, name, rec = []) => `
+  const chipHTML = (m, selected, name, rec = [], text = t(materials[m].label)) => `
     <label class="mat${rec.includes(m) ? ' rec' : ''}" data-mat="${m}">
       <input type="radio" name="${name}" value="${m}"${m === selected ? ' checked' : ''}>
-      <span>${t(materials[m].label)}</span>
+      <span>${esc(text)}</span>
     </label>`;
-  // материалите, подредени по групи; заглавия има само когато групите са повече от една
+  // Избор на два етапа: първо видът (PLA, PETG…), после разновидността (мат, Silk…). Цветовете са отдолу.
+  // Всички разновидности са в страницата (едно радио-име), а се вижда само редът на избрания вид.
   // rec = препоръчаните за продукта (отбелязват се със ★)
   const materialsHTML = (list, selected, name, rec = []) => {
-    const groups = Object.keys(materialGroups).map(g => [g, list.filter(m => materials[m].group === g)]).filter(([, ms]) => ms.length);
-    if (groups.length < 2) return list.map(m => chipHTML(m, selected, name, rec)).join('');
-    return groups.map(([g, ms]) => `
-      <div class="mat-group">
-        <span class="mat-group-label">${t(materialGroups[g])}</span>
-        <div class="mat-group-chips">${ms.map(m => chipHTML(m, selected, name, rec)).join('')}</div>
-      </div>`).join('');
+    const fams = Object.entries(materialFamilies).map(([id, f]) => [id, f, f.mats.filter(m => list.includes(m))]).filter(([, , ms]) => ms.length);
+    const known = new Set(fams.flatMap(([, , ms]) => ms));
+    const rest = list.filter(m => !known.has(m));
+    if (rest.length) fams.push(['other', { label: 'Други' }, rest]);
+    const active = (fams.find(([, , ms]) => ms.includes(selected)) || fams[0])[0];
+    // „PLA Мат“ в реда на PLA е просто „Мат“, а самият PLA — „Стандартен“
+    const short = (m, f) => {
+      const L = t(materials[m].label), F = t(f.label);
+      return L === F ? t('Стандартен') : L.startsWith(F + ' ') ? L.slice(F.length + 1) : L;
+    };
+    return `
+      <div class="mat-picker">
+        <div class="mat-families" role="group" aria-label="${esc(t('Вид материал'))}">${fams.map(([id, f, ms]) => `
+          <button type="button" class="mat-family${id === active ? ' is-active' : ''}" data-family="${id}" aria-pressed="${id === active}">${esc(t(f.label))}${ms.some(m => rec.includes(m)) ? ' <span class="rec-star">★</span>' : ''}</button>`).join('')}
+        </div>${fams.map(([id, f, ms]) => `
+        <div class="mat-variants" data-family="${id}"${id === active ? '' : ' hidden'}>${ms.map(m => chipHTML(m, selected, name, rec, short(m, f))).join('')}</div>`).join('')}
+      </div>`;
   };
+  // клик на вид: показва разновидностите му и избира препоръчаната (или първата) — същото събитие change като при ръчен избор
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.mat-family');
+    if (!b) return;
+    const picker = b.closest('.mat-picker');
+    picker.querySelectorAll('.mat-family').forEach(x => {
+      const on = x === b;
+      x.classList.toggle('is-active', on);
+      x.setAttribute('aria-pressed', String(on));
+    });
+    picker.querySelectorAll('.mat-variants').forEach(r => { r.hidden = r.dataset.family !== b.dataset.family; });
+    const row = picker.querySelector(`.mat-variants[data-family="${b.dataset.family}"]`);
+    if (row.querySelector('input:checked')) return;
+    const input = row.querySelector('.mat.rec input') || row.querySelector('input');
+    input.checked = true;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
   // вид в 3D: прозрачните цветове правят модела полупрозрачен
   const finishFor = (mat, colorName) => {
     const clear = colors.find(c => c.name === colorName)?.clear;
@@ -108,9 +136,9 @@ window.SLOY_SHOP = (() => {
     </label>`).join('');
 
   // ---------- Многоцветен печат ----------
-  // не повече цветове от наличните за материала
-  const maxColorsFor = mat => Math.max(1, Math.min(pricing.maxColors || 4, colorsFor(mat).length));
-  const ncolorsHTML = (n, name, mat) => Array.from({ length: mat ? maxColorsFor(mat) : pricing.maxColors || 4 }, (_, i) => i + 1).map(k => `
+  // не повече цветове от наличните за материала, нито от колкото позволява моделът (cap = product.maxColors)
+  const maxColorsFor = (mat, cap = pricing.maxColors || 4) => Math.max(1, Math.min(pricing.maxColors || 4, cap, colorsFor(mat).length));
+  const ncolorsHTML = (n, name, mat, cap) => Array.from({ length: mat ? maxColorsFor(mat, cap) : pricing.maxColors || 4 }, (_, i) => i + 1).map(k => `
     <label class="chip"><input type="radio" name="${name}" value="${k}"${k === n ? ' checked' : ''}><span>${k === 1 ? t('1 цвят') : t('{n} цвята', { n: k })}</span></label>`).join('');
   // допълнителните цветове — налични за материала и различни от основния
   const fitExtra = (mat, main, extra, n) => {

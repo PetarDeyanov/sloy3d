@@ -26,6 +26,50 @@ export function parseSTL(buffer) {
   return { positions, ...measure(positions) };
 }
 
+// ---------- GLB ----------
+// 3D прегледите от MakerWorld (Draco компресия). Връща същото като parseSTL — позиции със Z нагоре.
+const DRACO_PATH = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/';
+export async function parseGLB(buffer) {
+  const [{ GLTFLoader }, { DRACOLoader }] = await Promise.all([
+    import('three/addons/loaders/GLTFLoader.js'),
+    import('three/addons/loaders/DRACOLoader.js'),
+  ]);
+  const loader = new GLTFLoader();
+  const draco = new DRACOLoader();
+  draco.setDecoderPath(DRACO_PATH);
+  loader.setDRACOLoader(draco);
+  const gltf = await new Promise((resolve, reject) => loader.parse(buffer, '', resolve, reject));
+  draco.dispose();
+  gltf.scene.updateMatrixWorld(true);
+  const parts = [];
+  gltf.scene.traverse(o => {
+    if (!o.isMesh) return;
+    const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    g.applyMatrix4(o.matrixWorld);
+    parts.push(g.attributes.position.array);
+    g.dispose();
+  });
+  if (!parts.length) throw new Error('Празен GLB.');
+  const positions = new Float32Array(parts.reduce((s, a) => s + a.length, 0));
+  let off = 0;
+  for (const a of parts) { positions.set(a, off); off += a.length; }
+  // glTF по правило е с Y нагоре. Ако моделът не стои върху Z = 0, а върху Y = 0, го обръщаме към Z нагоре.
+  let minY = Infinity, minZ = Infinity;
+  for (let i = 0; i < positions.length; i += 3) {
+    if (positions[i + 1] < minY) minY = positions[i + 1];
+    if (positions[i + 2] < minZ) minZ = positions[i + 2];
+  }
+  const zUp = Math.abs(minZ) < 0.5 && Math.abs(minY) > 0.5;
+  if (!zUp) {
+    for (let i = 0; i < positions.length; i += 3) {
+      const y = positions[i + 1];
+      positions[i + 1] = -positions[i + 2];
+      positions[i + 2] = y;
+    }
+  }
+  return { positions, ...measure(positions) };
+}
+
 export function measure(p) {
   let volume = 0;
   let area = 0;

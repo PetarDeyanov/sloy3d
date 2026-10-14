@@ -600,6 +600,13 @@ window.SLOY_I18N = (() => {
     "Серии от 10+ броя — до −20%": "Batches of 10+ pieces — up to −20%",
     "Оферта за твоя идея — безплатно": "Quotes for your own idea — free",
 
+    // ---------- Избор на материал ----------
+    "Стандартен": "Standard",
+    "Вид материал": "Material type",
+    "TPU (гъвкав)": "TPU (flexible)",
+    "Найлон и инженерни": "Nylon & engineering",
+    "Други": "Other",
+
     // ---------- Персонализирани ----------
     "Персонализирани подаръци — SLOY 3D | Литофания от снимка, ключодържател с име": "Personalised gifts — SLOY 3D | Photo lithophanes, name keychains",
     "Литофания от твоя снимка, ключодържател с име, табела за врата, медальон за куче и име за бюро. Виждаш го на живо, преди да поръчаш.": "A lithophane from your photo, a name keychain, a door sign, a dog tag or a desk name. See it live before you order.",

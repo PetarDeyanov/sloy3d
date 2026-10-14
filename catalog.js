@@ -151,12 +151,16 @@
     $('#pd-views').hidden = true;
     setView('photo');
     try {
-      const res = await fetch(`models/${p.id}.stl`);
+      // 3D прегледът от MakerWorld (.glb), а ако го няма — собствен STL
+      let kind = 'glb';
+      let res = await fetch(`models/${p.id}.glb`);
+      if (!res.ok) { kind = 'stl'; res = await fetch(`models/${p.id}.stl`); }
       if (!res.ok || token !== modelToken) return;
       const buffer = await res.arrayBuffer();
       viewerModule ||= await import('./viewer.js');
       if (token !== modelToken) return;
-      const model = viewerModule.parseSTL(buffer);
+      const model = kind === 'glb' ? await viewerModule.parseGLB(buffer) : viewerModule.parseSTL(buffer);
+      if (token !== modelToken) return;
       $('#pd-views').hidden = false;
       setView('3d');
       viewer ||= viewerModule.createViewer($('#pd-3d'));
@@ -184,8 +188,12 @@
     if (!list.some(c => c.name === pd.color)) pd.color = list[0].name;
     $('#pd-colors').innerHTML = S.swatchesHTML(pd.mat, pd.color, 'pd-color');
     $('#pd-color-name').textContent = t(pd.color);
-    pd.ncolors = Math.min(pd.ncolors, S.maxColorsFor(pd.mat));
-    $('#pd-ncolors').innerHTML = S.ncolorsHTML(pd.ncolors, 'pd-ncolors', pd.mat);
+    // многоцветен печат — само ако моделът го позволява (maxColors) и материалът има поне 2 цвята
+    const cap = pd.product.maxColors || 1;
+    const maxC = S.maxColorsFor(pd.mat, cap);
+    pd.ncolors = Math.min(pd.ncolors, maxC);
+    $('#pd-ncolors').innerHTML = S.ncolorsHTML(pd.ncolors, 'pd-ncolors', pd.mat, cap);
+    $('#pd-ncolors').closest('.opt').hidden = maxC < 2;
     renderExtra();
     renderPrice();
     paint3D();

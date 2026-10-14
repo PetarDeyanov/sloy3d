@@ -122,6 +122,7 @@ const renderPanel = () => {
   $('#cf-color-name').textContent = t(it.color);
   it.ncolors = Math.min(it.ncolors, S.maxColorsFor(it.mat));
   $('#cf-ncolors').innerHTML = S.ncolorsHTML(it.ncolors, 'cf-ncolors', it.mat);
+  $('#cf-ncolors').closest('.opt').hidden = S.maxColorsFor(it.mat) < 2;
   renderExtra();
   $('#cf-infill').innerHTML = P.infill.map(f => `
     <label class="chip"><input type="radio" name="cf-infill" value="${f.value}"${f.value === it.infill ? ' checked' : ''}><span>${t(f.label)}</span></label>`).join('');

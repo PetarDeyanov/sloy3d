@@ -624,7 +624,18 @@ body.locked { overflow: hidden; }
 .opt-note { margin-top: 10px; font-size: 13px; color: var(--ink-3); }
 
 .materials { display: flex; flex-wrap: wrap; gap: 8px; }
-.materials:has(.mat-group) { display: grid; gap: 12px; }
+.materials:has(.mat-group), .materials:has(.mat-picker) { display: block; }
+.mat-picker { display: grid; gap: 10px; }
+.mat-families { display: flex; flex-wrap: wrap; gap: 8px; }
+.mat-family {
+  padding: 9px 16px; cursor: pointer; font: 800 14.5px var(--font-body); color: var(--ink);
+  background: var(--paper); border: 2px solid var(--ink); border-radius: 12px; transition: background-color .15s, transform .12s;
+}
+.mat-family:hover { background: var(--t-lime); }
+.mat-family.is-active { color: var(--paper); background: var(--ink); box-shadow: 3px 3px 0 var(--lime); transform: translate(-1px, -1px); }
+.mat-family:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.mat-family .rec-star { color: var(--pink); }
+.mat-variants { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: var(--bg); border: 2px dashed var(--ink-3); border-radius: 14px; }
 .mat-group-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
 .mat-group-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .mat { position: relative; }
