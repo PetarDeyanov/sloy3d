@@ -543,10 +543,6 @@ window.SLOY_CATALOG = (() => {
         name: 'GoPro стойка за Picatinny шина', desc: 'Закрепваш екшън камерата на шината на репликата и снимаш игрите.',
         en: { name: "GoPro mount for Picatinny rail", desc: "Mount an action camera on your replica's rail and film your games." },
         mw: mw(111947, 'omriy7', 'BY-SA', 'Picatinny Gopro mount', 'USb0d8d04813a397/design/2023-12-28_85c84f79928f9.jpeg') },
-      { id: 'whistle', cat: 'airsoft', sub: 'gear', grams: 3, hours: 0.3, maxColors: 2, materials: SOLID, assembly: { minutes: 2, items: { keyring: 1 } },
-        name: 'Плоска джобна свирка', desc: 'Силна и плоска — за сигнали на полето, туризъм и спешни случаи.',
-        en: { name: "Flat pocket whistle", desc: "Loud and flat — for signals on the field, hiking and emergencies." },
-        mw: mw(226061, 'Jonas Daehnert', 'BY-SA', 'Flat Pocket Whistle', 'US580e4027e94453/design/2024-03-04_8d5cca4a0d8918.jpg') },
 
       // ---------- FPV и камери ----------
       { id: 'gopro-tpu', cat: 'fpv', sub: 'cameras', grams: 48, hours: 2.9, maxColors: 2, materials: ['TPU', 'PETG', 'PLA-CF', 'PA-CF'], assembly: { minutes: 2, items: { gopro: 1 } },
