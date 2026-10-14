@@ -17,6 +17,21 @@ window.SLOY_CATALOG = (() => {
   const PLAIN = ['PLA', 'PLA Matte', 'PLA Galaxy', 'PLA Glow', 'CoPE'];
   const LIGHT = ['PLA', 'PLA Translucent', 'PLA Glow', 'PLA Matte'];   // фенери и свещници
   const FLEX = ['TPU', 'TPU 90A', 'PETG'];
+
+  // Избор под продукта (options): клиентът избира от списъка или пише свой отговор (other).
+  // Отговорът отива в количката и в имейла с поръчката. Цената не се променя.
+  const PHONE = {
+    key: 'phone', label: 'Модел на телефона', other: true,
+    groups: [
+      ['iPhone', ['iPhone 17 Pro Max', 'iPhone 17 Pro', 'iPhone Air', 'iPhone 17', 'iPhone 16 Pro Max', 'iPhone 16 Pro', 'iPhone 16 Plus', 'iPhone 16', 'iPhone 16e',
+        'iPhone 15 Pro Max', 'iPhone 15 Pro', 'iPhone 15 Plus', 'iPhone 15', 'iPhone 14 Pro Max', 'iPhone 14 Pro', 'iPhone 14', 'iPhone 13 Pro', 'iPhone 13', 'iPhone 12', 'iPhone SE']],
+      ['Samsung', ['Galaxy S25 Ultra', 'Galaxy S25+', 'Galaxy S25', 'Galaxy S24 Ultra', 'Galaxy S24+', 'Galaxy S24', 'Galaxy S23 Ultra', 'Galaxy S23',
+        'Galaxy A56', 'Galaxy A55', 'Galaxy A36', 'Galaxy A35', 'Galaxy A26', 'Galaxy A25', 'Galaxy A16', 'Galaxy A15']],
+      ['Xiaomi', ['Redmi Note 14 Pro', 'Redmi Note 14', 'Redmi Note 13 Pro', 'Redmi Note 13', 'Xiaomi 15', 'Xiaomi 14', 'Poco X7']],
+      ['Google', ['Pixel 10 Pro', 'Pixel 10', 'Pixel 9 Pro', 'Pixel 9', 'Pixel 8']],
+    ],
+  };
+  const PHONE_CASE = { key: 'case', label: 'Кейс на телефона', choices: ['Без кейс', 'С тънък кейс', 'С дебел кейс'] };
   const STATUE = ['PLA Matte', 'PLA Silk', 'PLA', 'PLA Galaxy'];   // фигурки и скулптури
   const GHOST = ['PLA Glow', 'PLA', 'PLA Matte', 'PLA Translucent'];   // призраци — и светещи на тъмно
 
@@ -527,19 +542,15 @@ window.SLOY_CATALOG = (() => {
         name: 'Капаци за M-LOK шина', desc: 'Защитават слотовете и дават по-добър захват на предницата.',
         en: { name: "M-LOK rail covers", desc: "Protect the slots and give a better grip on the handguard." },
         mw: mw(655892, 'Recticle', 'BY-SA', 'Magpul rail cover type 2 (M-lok)', 'US83986dd2857a68/design/2024-09-22_tt1kv7zto410.png') },
-      { id: 'molle-clip', cat: 'airsoft', sub: 'gear', grams: 4, hours: 0.7, materials: SOLID,
-        name: 'MOLLE клипс', desc: 'Закачаш карабинери, ключове и аксесоари към MOLLE лентите на жилетката или раницата.',
-        en: { name: "MOLLE clip", desc: "Attach carabiners, keys and accessories to the MOLLE webbing on your vest or pack." },
-        mw: mw(774566, 'DiPato', 'CC0', 'Molle Buckle Clip', 'USc8089265a3f164/design/2024-11-10_7e52d164bf98a.jpeg') },
       { id: 'molle-hook', cat: 'airsoft', sub: 'gear', grams: 8, hours: 0.5, materials: ['PETG', 'PCTG', 'ABS', 'Nylon'],
         name: 'MOLLE кука', desc: 'Кука за ръкавици, очила или шапка, закачена на MOLLE.',
         en: { name: "MOLLE hook", desc: "A hook for gloves, glasses or a cap, attached to MOLLE." },
         mw: mw(823789, 'SamMi', 'BY-SA', 'Molle clip Hook V2', 'DSM00000000823789/design/2024-11-26_jh5516g1ihto.jpg') },
-      { id: 'molle-phone', cat: 'airsoft', sub: 'gear', grams: 87, hours: 3.7, materials: ['PETG', 'TPU'], assembly: { minutes: 5 },
-        name: 'MOLLE панел с калъф за телефон', desc: 'Телефонът е на гърдите ти — за карта, връзка с отбора и снимки.',
-        en: { name: "MOLLE panel with phone pouch", desc: "Your phone on your chest — for maps, team comms and photos." },
+      { id: 'molle-phone', cat: 'airsoft', sub: 'gear', grams: 87, hours: 3.7, materials: ['PETG', 'TPU'], assembly: { minutes: 5 }, options: [PHONE, PHONE_CASE],
+        name: 'MOLLE панел с калъф за телефон', desc: 'Телефонът е на гърдите ти — за карта, връзка с отбора и снимки. Калъфът се прави по размера на твоя телефон — избери модела отдолу.',
+        en: { name: "MOLLE panel with phone pouch", desc: "Your phone on your chest — for maps, team comms and photos. The pouch is made to fit your phone — pick the model below." },
         mw: mw(1949318, 'LiuHuo·Ye', 'BY', '战术挂板/手机包（适配molle系统）', 'DSM00000001949318/design/2025-10-14_9833ed8365779.jpg') },
-      { id: 'picatinny-gopro', cat: 'airsoft', sub: 'gun', grams: 40, maxColors: 2, materials: ['PETG', 'PCTG', 'ASA', 'PLA-CF', 'PA-CF'], assembly: { minutes: 2, items: { gopro: 1 } },
+      { id: 'picatinny-gopro', cat: 'airsoft', sub: 'gear', grams: 40, maxColors: 2, materials: ['PETG', 'PCTG', 'ASA', 'PLA-CF', 'PA-CF'], assembly: { minutes: 2, items: { gopro: 1 } },
         name: 'GoPro стойка за Picatinny шина', desc: 'Закрепваш екшън камерата на шината на репликата и снимаш игрите.',
         en: { name: "GoPro mount for Picatinny rail", desc: "Mount an action camera on your replica's rail and film your games." },
         mw: mw(111947, 'omriy7', 'BY-SA', 'Picatinny Gopro mount', 'USb0d8d04813a397/design/2023-12-28_85c84f79928f9.jpeg') },
@@ -880,16 +891,12 @@ window.SLOY_CATALOG = (() => {
         en: { name: "microSD card suitcase", desc: "A tiny suitcase for one microSD card — snaps shut and has holes for a keyring." },
         mw: mw(3425133, 'z3r0c1ph3r', 'BY', 'Micro SD card Suitcase', 'US343ad4c7de44b9/design/10cde4036285dc55.jpg') },
       { id: 'gbb-loader-adapter', cat: 'airsoft', sub: 'mags', grams: 16, hours: 1.0, materials: SOLID,
-        name: 'Адаптер за пълнене на GBB пълнители (пистолет)', desc: 'Слага се на пълнителя и пълниш BB топчета направо с обикновен speedloader. За GBB пълнители на Glock реплики по стандарт TM.',
-        en: { name: "GBB pistol magazine loading adapter", desc: "Fits on the magazine so you can load BBs straight from a standard speedloader. For TM-standard Glock-replica GBB magazines." },
+        name: 'Адаптер за пълнене на GBB пълнители за Glock', desc: 'Слага се на пълнителя и пълниш BB топчета направо с обикновен speedloader. За GBB пълнители на Glock реплики по стандарт TM.',
+        en: { name: "GBB magazine loading adapter for Glock", desc: "Fits on the magazine so you can load BBs straight from a standard speedloader. For TM-standard Glock-replica GBB magazines." },
         mw: mw(1993936, 'pumadriftcat', 'BY', 'GBB Glock Airsoft Speedloader Adapter', 'UScb22ecc25ceea/design/2025-11-13_1181ab7f2fa718.jpg') },
-      { id: '1911-loader', cat: 'airsoft', sub: 'mags', grams: 9, hours: 0.4, materials: SOLID,
-        name: 'Пълначка за 1911 пълнители', desc: 'Пълначка за GBB пълнители тип 1911 — стои сама на пълнителя, докато пълниш топчетата.',
-        en: { name: "1911 magazine loader", desc: "A loader for 1911-style GBB magazines — it stays on the magazine by itself while you load the BBs." },
-        mw: mw(591458, 'KP design', 'BY-SA', 'Airsoft 1911 magazine loader', 'US84ba46de8c949e/design/2024-08-21_76d2e09356083.jpg') },
       { id: 'hicapa-loader-adapter', cat: 'airsoft', sub: 'mags', grams: 14, hours: 0.9, materials: SOLID,
-        name: 'Адаптер за пълнене на Hi-Capa пълнители', desc: 'Слага се на GBB пълнител тип Hi-Capa и пълниш BB топчета направо с обикновен speedloader.',
-        en: { name: "Hi-Capa magazine loading adapter", desc: "Fits on a Hi-Capa-style GBB magazine so you can load BBs straight from a standard speedloader." },
+        name: 'Адаптер за пълнене на GBB пълнители за 1911 (Hi-Capa)', desc: 'Слага се на двуреден GBB пълнител тип Hi-Capa (платформа 1911) и пълниш BB топчета направо с обикновен speedloader.',
+        en: { name: "GBB magazine loading adapter for 1911 (Hi-Capa)", desc: "Fits on a double-stack Hi-Capa GBB magazine (1911 platform) so you can load BBs straight from a standard speedloader." },
         mw: mw(1993946, 'pumadriftcat', 'BY', 'Airsoft Hicapa GBB Speedloader adapter', 'US771362fe038c3b/design/2025-11-13_d2ce1a23b0c2a8.jpg') },
       { id: 'heart-stand', cat: 'gifts', sub: 'surprises', seasons: ['valentine'], always: true, grams: 7, hours: 0.7, materials: DECOR,
         name: 'Плетено сърце — стойка за снимка', desc: 'Изглежда като плетено, а държи любимата ви снимка. Подарък за празник.',

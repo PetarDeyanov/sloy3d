@@ -607,6 +607,18 @@ window.SLOY_I18N = (() => {
     "Найлон и инженерни": "Nylon & engineering",
     "Други": "Other",
 
+    // ---------- Избор под продукта ----------
+    "Модел на телефона": "Phone model",
+    "Кейс на телефона": "Phone case",
+    "Без кейс": "No case",
+    "С тънък кейс": "With a thin case",
+    "С дебел кейс": "With a thick case",
+    "Избери…": "Choose…",
+    "Друг модел — ще го напиша": "Other model — I'll type it",
+    "Кой модел?": "Which model?",
+    "напр. Motorola Edge 50": "e.g. Motorola Edge 50",
+    "Попълни: {label}": "Please fill in: {label}",
+
     // ---------- Подкатегории ----------
     "Вази и украса за стена": "Vases & wall decor",
     "Скулптури": "Sculptures",

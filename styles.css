@@ -541,6 +541,9 @@ body.locked { overflow: hidden; }
 .filter[aria-pressed="true"] { color: var(--lime); background: var(--ink); }
 .filter[aria-pressed="true"] .n { color: var(--t-lime); }
 .filter-season { background: var(--t-sun); }
+.pd-options { display: grid; gap: 10px; }
+.pd-options .field { margin: 0; }
+.pd-options select.invalid, .pd-options input.invalid { border-color: var(--err); background: #fff2f1; }
 .subfilters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding: 8px; background: var(--paper); border: 2px dashed var(--ink-3); border-radius: 16px; }
 .subfilter {
   display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 12px; cursor: pointer;

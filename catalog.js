@@ -40,7 +40,8 @@
   };
   let cart = loadCart();
   const colorsOf = i => [i.color, ...(i.extra || [])];
-  const keyOf = i => [i.id, i.mat, ...colorsOf(i), i.note].join('|');
+  const keyOf = i => [i.id, i.mat, ...colorsOf(i), i.note, JSON.stringify(i.opts || {})].join('|');
+  const optsText = (i, translate = true) => Object.entries(i.opts || {}).map(([k, v]) => `${translate ? t(k) : k}: ${translate ? t(v) : v}`).join(' · ');
   const lineTotal = i => unitPrice(byId(i.id), i.mat, colorsOf(i)) * i.qty;
   const subtotal = () => cart.reduce((s, i) => s + lineTotal(i), 0);
   let extras = null;      // експресна изработка и промокод (кутията в количката)
@@ -241,6 +242,21 @@
     $('#pd-assembly').hidden = !p.assembly;
     $('#pd-assembly').textContent = p.assembly ? t('Сглобяваме го ние') + (asm ? ` · ${t('В комплекта:')} ${asm}` : '') : '';
     $('#pd-note').value = '';
+    // избор под продукта (напр. модел на телефона)
+    const opts = p.options || [];
+    $('#pd-options').hidden = !opts.length;
+    $('#pd-options').innerHTML = opts.map(o => `
+      <label class="field"><span>${esc(t(o.label))} *</span>
+        <select data-opt="${o.key}">
+          <option value="">${t('Избери…')}</option>
+          ${(o.groups || [[null, o.choices]]).map(([g, list]) => {
+            const items = list.map(x => `<option value="${esc(x)}">${esc(t(x))}</option>`).join('');
+            return g ? `<optgroup label="${esc(g)}">${items}</optgroup>` : items;
+          }).join('')}
+          ${o.other ? `<option value="__other">${t('Друг модел — ще го напиша')}</option>` : ''}
+        </select>
+      </label>
+      ${o.other ? `<label class="field" data-other-for="${o.key}" hidden><span>${t('Кой модел?')} *</span><input data-opt-other="${o.key}" maxlength="60" placeholder="${esc(t('напр. Motorola Edge 50'))}"></label>` : ''}`).join('');
     $('#pd-materials').innerHTML = S.materialsHTML(S.available(ALL), pd.mat, 'pd-mat', p.materials);
     const [licName, licUrl] = LICENSES[p.mw.lic];
     $('#pd-credit').innerHTML = `${t('Модел: „{title}“ от {by}', { title: esc(p.mw.title), by: esc(p.mw.by) })} · <a href="${licUrl}" target="_blank" rel="noopener license">${licName}</a> · <a href="${mwUrl(p)}" target="_blank" rel="noopener">MakerWorld ↗</a>`;
@@ -305,6 +321,7 @@
         <div>
           <p class="ci-name">${esc(pick(p, 'name'))}</p>
           <p class="ci-meta">${t(materials[i.mat].label)} · ${esc(colorsOf(i).map(c => t(c)).join(' + '))}</p>
+          ${i.opts ? `<p class="ci-meta">${esc(optsText(i))}</p>` : ''}
           ${i.note ? `<p class="ci-note">„${esc(i.note)}“</p>` : ''}
           <div class="ci-controls">
             <div class="stepper stepper-sm">
@@ -359,8 +376,38 @@
   const openCart = () => { showCartStep('cart'); S.openDrawer(cartEl); };
   document.addEventListener('click', e => { if (e.target.closest('[data-open-cart]')) openCart(); });
 
+  $('#pd-options').addEventListener('change', e => {
+    const sel = e.target.closest('select[data-opt]');
+    if (!sel) return;
+    const other = $(`[data-other-for="${sel.dataset.opt}"]`, pdEl);
+    if (other) {
+      other.hidden = sel.value !== '__other';
+      if (!other.hidden) $('input', other).focus();
+    }
+    sel.classList.remove('invalid');
+  });
+  // отговорите на избора под продукта; null = нещо не е попълнено
+  const readOptions = () => {
+    const out = {};
+    for (const o of pd.product.options || []) {
+      const sel = $(`select[data-opt="${o.key}"]`, pdEl);
+      let v = sel.value === '__other' ? $(`[data-opt-other="${o.key}"]`, pdEl).value.trim() : sel.value;
+      if (!v) {
+        const field = sel.value === '__other' ? $(`[data-opt-other="${o.key}"]`, pdEl) : sel;
+        field.classList.add('invalid');
+        field.focus();
+        S.toast(t('Попълни: {label}', { label: t(o.label) }));
+        return null;
+      }
+      out[o.label] = v;
+    }
+    return out;
+  };
+
   $('#pd-add').addEventListener('click', () => {
-    addToCart({ id: pd.product.id, mat: pd.mat, color: pd.color, extra: [...pd.extra], note: $('#pd-note').value.trim(), qty: pd.qty });
+    const opts = readOptions();
+    if (!opts) return;
+    addToCart({ id: pd.product.id, mat: pd.mat, color: pd.color, extra: [...pd.extra], note: $('#pd-note').value.trim(), qty: pd.qty, ...(Object.keys(opts).length ? { opts } : {}) });
     S.closeDrawer(pdEl);
     S.toast(t('„{name}“ е в количката', { name: pick(pd.product, 'name') }), t('Виж количката'));
   });
@@ -377,6 +424,7 @@
         const p = byId(i.id);
         return `${n + 1}. ${p.name} — ${materials[i.mat].label}, ${colorsOf(i).join(' + ')} × ${i.qty} = ${fmt(lineTotal(i))} (≈ ${p.grams} г/бр.)`
           + (p.assembly ? `\n   Сглобяване: ${p.assembly.minutes || 0} мин${p.assembly.items ? ` · Консумативи: ${S.assemblyItems(p.assembly, false)}` : ''}` : '')
+          + (i.opts ? `\n   ${optsText(i, false)}` : '')
           + (i.note ? `\n   Бележка: ${i.note}` : '')
           + `\n   Файл: ${mwUrl(p)}`;
       }).join('\n');
