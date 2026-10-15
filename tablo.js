@@ -169,7 +169,7 @@
         <span class="order-date">${esc(o['Дата'])}</span>
         <strong class="order-total">${esc(o['Общо'])}</strong>
       </header>
-      <p class="order-who"><strong>${esc(o['Име'])}</strong> · ${phoneLinks(o['Телефон'])}${isEmail(o['Имейл']) ? ` · <a href="mailto:${esc(o['Имейл'])}">${esc(o['Имейл'])}</a>` : ''}${o['Език'] === 'EN' ? ' · <span class="tag">EN</span>' : ''}${has(o['Експресна']) ? ' · <span class="tag tag-hot">⚡ Експресна</span>' : ''}</p>
+      <p class="order-who"><strong>${esc(o['Име'])}</strong> · ${phoneLinks(o['Телефон'])}${isEmail(o['Имейл']) ? ` · <a href="mailto:${esc(o['Имейл'])}">${esc(o['Имейл'])}</a>` : ''}${o['Език'] === 'EN' ? ' · <span class="tag">EN</span>' : ''}${has(o['Експресна']) ? ' · <span class="tag tag-hot">⚡ Експресна</span>' : ''}${/превод/i.test(o['Плащане']) && o['Статус'] === 'Приета' ? ' · <span class="tag tag-bank">💳 Банков превод — провери плащането</span>' : ''}</p>
       <p class="order-ship">${esc(o['Доставка'])}, ${esc(o['Град'])} — ${esc(o['Офис / адрес'])} · ${esc(o['Плащане'])}</p>
       ${has(o['Бележка']) ? `<p class="order-cnote">„${esc(o['Бележка'])}“</p>` : ''}
       <details class="order-items-box"${o['Статус'] === 'Приета' ? ' open' : ''}>

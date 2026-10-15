@@ -920,6 +920,9 @@ body.locked { overflow: hidden; }
 .admin-table tr.bad { background: #fff2f1; }
 .admin-hint { margin-top: 14px; font-size: 14px; color: var(--ink-3); }
 .econt-office select { width: 100%; }
+.bank-box { display: grid; gap: 4px; margin: 14px 0; padding: 14px 16px; text-align: left; background: var(--t-sun); border: 2px solid var(--ink); border-radius: 14px; }
+.bank-details { font-weight: 800; font-variant-numeric: tabular-nums; word-break: break-word; }
+.tag-bank { background: var(--t-sun); }
 .econt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 15px; }
 .order-econt { display: grid; gap: 12px; margin-top: 14px; padding: 14px; background: var(--bg); border: 2px dashed var(--blue); border-radius: 14px; }
 .order-econt .order-actions { margin-top: 0; }

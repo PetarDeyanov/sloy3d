@@ -319,7 +319,7 @@ window.SLOY_SHOP = (() => {
       try {
         const res = await fetch(scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'order', order: fields['Поръчка'], subject, lang, fields, ...extra }) });
         const j = await res.json();
-        if (j.ok) return { order: j.order || fields['Поръчка'] };
+        if (j.ok) return { order: j.order || fields['Поръчка'], bank: j.bank || '' };
       } catch { /* таблицата не отговаря — пращаме по имейл */ }
     }
     if (!cfg.web3formsKey) {
@@ -354,6 +354,29 @@ window.SLOY_SHOP = (() => {
   const econtIn = (list, city) => { const c = cityKey(city); return c ? list.filter(o => cityKey(o.city) === c || cityKey(o.cityEn) === c) : []; };
   const econtText = (o, en = lang === 'en') => `${(en && o.nameEn) || o.name}${o.aps ? (en ? ' (Econtomat)' : ' (еконтомат)') : ''} — ${(en && o.addressEn) || o.address}`;
 
+  // ---------- Банков превод: данните на екрана „Поръчката е изпратена“ ----------
+  // данните идват от Google таблицата (BANK_DETAILS) с отговора на поръчката — не стоят в кода на сайта
+  const showBank = (on, sent, amount, freeShip) => {
+    const ok = document.getElementById('checkout-success');
+    if (!ok) return;
+    let box = $('.bank-box', ok);
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'bank-box';
+      const h = $('h3', ok);
+      if (h) h.after(box); else ok.append(box);
+    }
+    box.hidden = !on;
+    if (!on) return;
+    box.innerHTML = `<strong>${t('Плащане с банков превод')}</strong>`
+      + (sent.bank
+        ? `<p>${esc(t('Сума: {sum}', { sum: fmt(amount || 0) }))}${freeShip ? '' : esc(t(' (доставката плащаш на Еконт при получаване)'))}</p>
+           <p>${esc(t('Сметка:'))} <span class="bank-details">${esc(sent.bank)}</span></p>
+           <p>${esc(t('Основание: {order}', { order: sent.order }))}</p>
+           <p class="opt-note">${esc(t('Започваме печата, щом преводът пристигне. Данните са и в имейла ти.'))}</p>`
+        : `<p>${esc(t('Ще ти изпратим данните за превод, щом потвърдим поръчката.'))}</p>`);
+  };
+
   // ---------- Форма за доставка ----------
   // build(orderNo, data) връща { subject, fields, lines, total, amount } (може и async — напр. качване на файлове).
   // lines / total = продуктите и сумата на езика на клиента — за потвърждението, което получава по имейл.
@@ -362,7 +385,7 @@ window.SLOY_SHOP = (() => {
     const submitBtn = $('button[type=submit]', form);
     const setStatus = (msg, kind = '') => { status.textContent = msg; status.className = 'form-status ' + kind; };
 
-    // Еконт: град (с подсказки) → офис от падащо меню. „До адрес“: и пощенски код. Спиди: свободен текст.
+    // Еконт: град (с подсказки) → офис от падащо меню. „До адрес“: и пощенски код.
     const addrField = form.address.closest('.field');
     const econtBox = document.createElement('label');
     econtBox.className = 'field econt-office';
@@ -458,6 +481,7 @@ window.SLOY_SHOP = (() => {
         setStatus('');
         sync();
         onSuccess(sent.order);
+        showBank(d.payment === 'Банков превод', sent, amount, /^SLOY/.test(fields['Доставка за сметка на'] || ''));
       } catch {
         setStatus(t('Не успяхме да изпратим поръчката. Опитай пак или ни пиши във Viber.'), 'err');
       } finally {
