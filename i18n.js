@@ -743,6 +743,9 @@ window.SLOY_I18N = (() => {
     "Търси наведнъж в много сайтове — удобно, ако не знаеш къде да гледаш.": "Searches many sites at once — handy if you don't know where to look.",
     "Много дизайнерски модели — безплатни и платени.": "Lots of designer models — free and paid.",
 
+    "Обикновено": "Standard",
+    "Удължено": "Extended",
+
     // ---------- Подкатегории ----------
     "Вази и украса за стена": "Vases & wall decor",
     "Скулптури": "Sculptures",
