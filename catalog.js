@@ -185,6 +185,13 @@
     renderSubs();
     renderFits();
     renderHead();
+    // на телефон редовете с категории се превъртат — избраната да се вижда
+    [$('.filter[aria-pressed="true"]', filters), $('.subfilter[aria-pressed="true"]', subBox)].forEach(b => {
+      const row = b?.parentElement;
+      if (!row || row.scrollWidth <= row.clientWidth) return;
+      const br = b.getBoundingClientRect(), rr = row.getBoundingClientRect();
+      row.scrollLeft += br.left - rr.left - (rr.width - br.width) / 2;
+    });
     apply();
     if (seasons[currentFilter]) window.SLOY_FX?.play(currentFilter, origin || $('#cat-title'));
     else window.SLOY_FX?.stop();

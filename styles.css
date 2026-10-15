@@ -258,6 +258,26 @@ ul, ol { margin: 0; }
 .card-link:hover, .link-arrow:hover { color: var(--link); }
 
 /* Стъпки */
+/* „Намери готов модел“ (poruchka.html#modeli) */
+.models-guide { padding-top: 0; }
+.model-sites { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.model-site {
+  display: flex; flex-direction: column; gap: 6px; padding: 18px 18px 20px; color: var(--ink); text-decoration: none;
+  background: var(--paper); border: 2px solid var(--ink); border-radius: var(--radius); box-shadow: var(--shadow); transition: transform .15s, box-shadow .15s;
+}
+.model-site:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+.model-site strong { font-family: var(--font-display); font-weight: 400; font-size: 1.15rem; }
+.model-site strong::after { content: " ↗"; }
+.model-site span { font-size: 14.5px; color: var(--ink-2); }
+.model-site:nth-child(5n+1) { background: var(--t-coral); }
+.model-site:nth-child(5n+2) { background: var(--t-mint); }
+.model-site:nth-child(5n+3) { background: var(--t-blue); }
+.model-site:nth-child(5n+4) { background: var(--t-sun); }
+.model-site:nth-child(5n+5) { background: var(--t-grape); }
+.steps.model-steps { grid-template-columns: repeat(3, 1fr); margin-bottom: 22px; }
+.model-step-links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-weight: 700; }
+.model-step-links a, .form-hint a { color: var(--link); }
+.form-hint { margin: -8px 0 16px; font-size: 14px; font-weight: 700; }
 .steps { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; counter-reset: s; }
 .step { position: relative; padding: 24px; background: var(--paper); border: 2px solid var(--ink); border-radius: var(--radius); box-shadow: var(--shadow); }
 .step-num {
@@ -1024,6 +1044,11 @@ body.locked { overflow: hidden; }
   .filters, .subfilters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .filters { margin-inline: -16px; padding: 2px 16px 6px; }
   .subfilter { flex: none; }
+  .steps.model-steps { grid-template-columns: 1fr; }
+  /* „Пасва на“: бутоните се пренасят на редове, връзките — на собствен ред отдолу */
+  .subfilters.fitfilters { flex-wrap: wrap; overflow-x: visible; }
+  .fit-label { flex-basis: 100%; padding: 0 2px; }
+  .fit-links { flex-basis: 100%; margin-left: 0; padding: 4px 2px 0; }
   .filters::-webkit-scrollbar { display: none; }
   .filter { flex: none; }
   .products { grid-template-columns: repeat(2, 1fr); gap: 12px; }
