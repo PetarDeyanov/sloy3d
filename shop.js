@@ -342,6 +342,18 @@ window.SLOY_SHOP = (() => {
     return { order: fields['Поръчка'] };
   };
 
+  // ---------- Офиси на Еконт ----------
+  // econt-offices.json (tools/econt_offices.py): клиентът избира град и офис от списъка, а не пише свободен текст —
+  // така таблото прави товарителницата с точния код на офиса. Списъкът се зарежда чак когато потрябва.
+  let econtLoad = null;
+  const econtOffices = () => econtLoad ||= fetch('econt-offices.json')
+    .then(r => r.json())
+    .then(d => d.offices.map(r => Object.fromEntries(d.fields.map((f, i) => [f, r[i]]))))
+    .catch(() => { econtLoad = null; return []; });
+  const cityKey = s => String(s || '').toLowerCase().replace(/^\s*(гр\.|град|с\.|село|gr\.)\s*/, '').replace(/\s+/g, ' ').trim();
+  const econtIn = (list, city) => { const c = cityKey(city); return c ? list.filter(o => cityKey(o.city) === c || cityKey(o.cityEn) === c) : []; };
+  const econtText = (o, en = lang === 'en') => `${(en && o.nameEn) || o.name}${o.aps ? (en ? ' (Econtomat)' : ' (еконтомат)') : ''} — ${(en && o.addressEn) || o.address}`;
+
   // ---------- Форма за доставка ----------
   // build(orderNo, data) връща { subject, fields, lines, total, amount } (може и async — напр. качване на файлове).
   // lines / total = продуктите и сумата на езика на клиента — за потвърждението, което получава по имейл.
@@ -350,12 +362,55 @@ window.SLOY_SHOP = (() => {
     const submitBtn = $('button[type=submit]', form);
     const setStatus = (msg, kind = '') => { status.textContent = msg; status.className = 'form-status ' + kind; };
 
-    form.addEventListener('change', e => {
-      if (e.target.name !== 'delivery') return;
-      const toAddress = e.target.value === 'До адрес';
+    // Еконт: град (с подсказки) → офис от падащо меню. „До адрес“: и пощенски код. Спиди: свободен текст.
+    const addrField = form.address.closest('.field');
+    const econtBox = document.createElement('label');
+    econtBox.className = 'field econt-office';
+    econtBox.hidden = true;
+    econtBox.innerHTML = `<span>${t('Офис на Еконт *')}</span><select name="econtOffice"></select><small class="field-hint" data-econt-hint></small>`;
+    addrField.after(econtBox);
+    const pcBox = document.createElement('label');
+    pcBox.className = 'field postcode-field';
+    pcBox.hidden = true;
+    pcBox.innerHTML = `<span>${t('Пощенски код *')}</span><input name="postCode" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="postal-code" placeholder="1000">`;
+    addrField.closest('.field-row').after(pcBox);
+    const cities = document.createElement('datalist');
+    cities.id = `econt-cities-${form.id || 'form'}`;
+    form.append(cities);
+    let offices = [];
+    const fillOffices = () => {
+      const here = econtIn(offices, form.city.value);
+      const sel = form.econtOffice;
+      const prev = sel.value;
+      sel.innerHTML = `<option value="">${t(here.length ? 'Избери офис' : 'Първо напиши града')}</option>`
+        + here.map(o => `<option value="${esc(o.code)}">${esc(econtText(o))}</option>`).join('');
+      if (here.some(o => o.code === prev)) sel.value = prev;
+      else if (here.length === 1) sel.value = here[0].code;
+      $('[data-econt-hint]', econtBox).textContent = form.city.value.trim() && !here.length
+        ? t('Няма офис на Еконт в този град — напиши най-близкия град или избери „До адрес“.') : '';
+    };
+    const sync = async () => {
+      const mode = form.delivery.value;
+      const toAddress = mode === 'До адрес';
       $('[data-address-label]', form).textContent = t(toAddress ? 'Адрес *' : 'Офис *');
       form.address.placeholder = t(toAddress ? 'улица, номер, вход, етаж' : 'напр. офис Младост 1');
-    });
+      pcBox.hidden = !toAddress;
+      form.postCode.required = toAddress;
+      if (mode === 'Офис на Еконт' && !offices.length) {
+        offices = await econtOffices();
+        cities.innerHTML = [...new Set(offices.map(o => (lang === 'en' && o.cityEn) || o.city))].map(c => `<option value="${esc(c)}">`).join('');
+      }
+      const list = form.delivery.value === 'Офис на Еконт' && offices.length > 0;   // без списък (няма връзка) — свободен текст
+      econtBox.hidden = !list;
+      addrField.hidden = list;
+      form.address.required = !list;
+      form.econtOffice.required = list;
+      if (list) { form.city.setAttribute('list', cities.id); fillOffices(); } else form.city.removeAttribute('list');
+    };
+    form.addEventListener('change', e => { if (e.target.name === 'delivery') sync(); });
+    form.city.addEventListener('input', () => { if (!econtBox.hidden) fillOffices(); });
+    form.closest('.drawer')?.addEventListener('drawer:open', sync);
+    form.addEventListener('focusin', sync, { once: true });
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
@@ -367,6 +422,11 @@ window.SLOY_SHOP = (() => {
       }
       const d = Object.fromEntries(new FormData(form));
       if (d.botcheck) return;
+      // офисът на Еконт: в имейла и таблицата — името и адресът му (на български), а кодът — за товарителницата
+      const office = !econtBox.hidden && offices.find(o => o.code === d.econtOffice);
+      const shipTo = office ? econtText(office) : d.address;
+      if (office) { d.city = office.city; d.address = econtText(office, false); }
+      if (d.delivery === 'До адрес' && d.postCode) d.city = `${d.city.trim()} ${d.postCode.trim()}`;
 
       const orderNo = newOrderNo();
       submitBtn.disabled = true;
@@ -390,11 +450,13 @@ window.SLOY_SHOP = (() => {
           ...fields,
         }, d.email, {
           amount,
-          customer: { lines, total, delivery: t(d.delivery), address: `${d.city} — ${d.address}`, payment: t(d.payment) },
+          ship: { office: office ? office.code : '', postCode: d.postCode || '' },
+          customer: { lines, total, delivery: t(d.delivery), address: office ? shipTo : `${d.city} — ${d.address}`, payment: t(d.payment) },
         });
         form.reset();
         form.classList.remove('tried');
         setStatus('');
+        sync();
         onSuccess(sent.order);
       } catch {
         setStatus(t('Не успяхме да изпратим поръчката. Опитай пак или ни пиши във Viber.'), 'err');
@@ -447,6 +509,6 @@ window.SLOY_SHOP = (() => {
     cfg, scriptUrl, t, lang, pricing, priceFor, assemblyItems,
     ncolorsHTML, maxColorsFor, fitExtra, extraColorsHTML, totals, sumLinesHTML, totalsFields, afterOrder, mountExtras, esc, fmt, clampQty, colorsFor, available, previewColor, matHTML, newOrderNo,
     materialsHTML, swatchesHTML, finishFor, bindMaterialTips, bindTips, hideTip,
-    sendOrder, setupCheckout, toast, openDrawer, closeDrawer,
+    sendOrder, setupCheckout, toast, openDrawer, closeDrawer, econtOffices, econtIn, econtText,
   };
 })();

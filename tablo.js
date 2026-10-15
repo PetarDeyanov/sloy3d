@@ -10,7 +10,7 @@
   const KEY = 'sloy-admin';
   const REFRESH = 90 * 1000;   // проверка за нови поръчки, докато таблото е отворено
   let key = (() => { try { return localStorage.getItem(KEY) || ''; } catch { return ''; } })();
-  let D = { orders: [], leads: [], stock: [], codes: [], statuses: [], leadStatuses: [], minGrams: 50, mailQuota: null };
+  let D = { orders: [], leads: [], stock: [], codes: [], statuses: [], leadStatuses: [], minGrams: 50, mailQuota: null, econt: { live: false } };
   let pending = null;          // по-нови данни, които чакат „Покажи“ (за да не изчезне нещо, което пишеш)
   let checkedAt = 0;
   const view = { orders: 'all', leads: 'all', orderQuery: '', leadQuery: '' };
@@ -186,7 +186,9 @@
         <span class="admin-msg" role="status"></span>
       </div>
       ${has(o['Писано на клиента']) ? `<p class="order-written">✉ Писано на клиента: ${esc(o['Писано на клиента'])}</p>` : ''}
+      ${econtRowHTML(o)}
       <div class="order-compose" hidden></div>
+      <div class="order-econt" hidden></div>
     </article>`;
   const renderOrders = () => {
     const count = s => (s === 'all' ? D.orders.length : D.orders.filter(o => o['Статус'] === s).length);
@@ -205,10 +207,11 @@
     const no = o['Поръчка'];
     const courier = /Спиди/.test(o['Доставка']) ? (en ? 'Speedy' : 'Спиди') : /Еконт/.test(o['Доставка']) ? (en ? 'Econt' : 'Еконт') : (en ? 'courier' : 'куриер');
     const tr = o['Товарителница'];
+    const track = /Еконт/.test(courier + o['Доставка']) || has(o['Етикет']) ? trackUrl(tr) : '';
     const text = {
       'Приета': en ? `We've received your order ${no}. We'll let you know when it ships.` : `Получихме поръчката ти ${no}. Ще ти пишем, когато тръгне към теб.`,
       'Печата се': en ? `Your order ${no} is being printed right now. We'll let you know as soon as it ships.` : `Поръчката ти ${no} вече се печата. Ще ти пишем, щом тръгне към теб.`,
-      'Изпратена': en ? `Your order ${no} has been shipped with ${courier}.${tr ? ` Tracking number: ${tr}.` : ''} Thank you!` : `Поръчката ти ${no} е изпратена с ${courier}.${tr ? ` Товарителница: ${tr}.` : ''} Благодарим ти!`,
+      'Изпратена': en ? `Your order ${no} has been shipped with ${courier}.${tr ? ` Tracking number: ${tr}.` : ''}${track ? ` Track it here: ${track}` : ''} Thank you!` : `Поръчката ти ${no} е изпратена с ${courier}.${tr ? ` Товарителница: ${tr}.` : ''}${track ? ` Проследи я тук: ${track}` : ''} Благодарим ти!`,
       'Получена': en ? `Thank you for your order ${no}! We hope you like it — we'd love to see a photo.` : `Благодарим ти за поръчка ${no}! Надяваме се да ти харесва — ще се радваме на снимка.`,
       'Отказана': en ? `Unfortunately we can't fulfil order ${no}. We'll get in touch with the details.` : `За съжаление не можем да изпълним поръчка ${no}. Ще ти пишем с подробности.`,
     }[status] || '';
@@ -308,6 +311,143 @@
   });
   $('#order-filters').addEventListener('change', e => { view.orders = e.target.value; renderOrders(); });
   $('#order-search').addEventListener('input', e => { view.orderQuery = e.target.value; renderOrders(); });
+
+  // ---------- Еконт: товарителница ----------
+  const isWaybill = s => /^\d{8,}$/.test(String(s || '').trim());
+  const trackUrl = n => (isWaybill(n) ? `https://www.econt.com/services/track-shipment/${String(n).trim()}` : '');
+  const econtFor = o => /Еконт/.test(o['Доставка']) || o['Доставка'] === 'До адрес' || has(o['Еконт офис']);
+  const econtRowHTML = o => {
+    if (!econtFor(o)) return '';
+    if (!isWaybill(o['Товарителница'])) return `<div class="econt-row"><button class="btn btn-ghost btn-sm" type="button" data-econt>📦 Товарителница Еконт</button></div>`;
+    return `<div class="econt-row">📦 <strong>${esc(o['Товарителница'])}</strong>
+      ${has(o['Етикет']) ? `<a class="btn btn-primary btn-sm" href="${esc(o['Етикет'])}" target="_blank" rel="noopener">Етикет за печат (PDF)</a>` : ''}
+      <a class="btn btn-ghost btn-sm" href="${esc(trackUrl(o['Товарителница']))}" target="_blank" rel="noopener">Проследи</a>
+      <button class="btn btn-ghost btn-sm" type="button" data-econt-status>Статус</button>
+      <button class="btn btn-ghost btn-sm" type="button" data-econt-delete>Изтрий</button>
+      <span class="admin-msg" data-econt-msg></span></div>`;
+  };
+  // тегло за товарителницата: грамовете от „Продукти“ (≈ N г/бр. × брой) + ~150 г опаковка; без данни — 0,5 кг
+  const weightOf = o => {
+    let g = 0;
+    for (const m of String(o['Продукти'] || '').matchAll(/× (\d+)[^≈]*?≈ (\d+) г\/бр/g)) g += m[1] * m[2];
+    return g ? Math.max(0.1, Math.round((g + 150) / 100) / 10) : 0.5;
+  };
+  let econtCities = null;
+  const econtBoxHTML = (o, offices) => {
+    const toAddress = o['Доставка'] === 'До адрес' && !has(o['Еконт офис']);
+    const office = offices.find(x => x.code === String(o['Еконт офис'] || ''));
+    const city = office ? office.city : String(o['Град'] || '').replace(/\s*\d{4}$/, '');
+    const pc = has(o['Пощ. код']) ? o['Пощ. код'] : (String(o['Град'] || '').match(/(\d{4})$/) || [])[1] || '';
+    const cod = /Наложен/.test(o['Плащане']) ? Number(o['Сума €']) || 0 : 0;
+    return `
+      ${D.econt.live ? '' : '<p class="econt-test">ТЕСТОВ РЕЖИМ — товарителниците отиват в тестовата система на Еконт и не са истински. Виж apps-script/README.md → „Еконт“.</p>'}
+      <div class="econt-grid">
+        <label class="field"><span>Доставка до</span><select data-e-mode><option value="office"${toAddress ? '' : ' selected'}>Офис / еконтомат</option><option value="address"${toAddress ? ' selected' : ''}>Адрес</option></select></label>
+        <label class="field"><span>Град</span><input data-e-city list="tablo-econt-cities" value="${esc(city)}"></label>
+        <label class="field" data-e-office-box${toAddress ? ' hidden' : ''}><span>Офис${office ? '' : ' (клиентът е писал: ' + esc(o['Офис / адрес']) + ')'}</span><select data-e-office></select></label>
+        <label class="field" data-e-addr-box${toAddress ? '' : ' hidden'}><span>Пощ. код</span><input data-e-pc inputmode="numeric" maxlength="4" value="${esc(pc)}"></label>
+        <label class="field wide" data-e-addr-box${toAddress ? '' : ' hidden'}><span>Адрес</span><input data-e-street value="${esc(o['Офис / адрес'] || '')}"></label>
+        <label class="field"><span>Тегло, кг</span><input data-e-weight type="number" step="0.1" min="0.1" value="${weightOf(o)}"></label>
+        <label class="field"><span>Пакети</span><input data-e-packs type="number" min="1" max="20" value="1"></label>
+        <label class="field"><span>Наложен платеж, €</span><input data-e-cod type="number" step="0.01" min="0" value="${cod}"></label>
+        <label class="field wide"><span>Описание</span><input data-e-desc maxlength="100" value="3D принтирани изделия"></label>
+        <label class="check wide"><input type="checkbox" data-e-rp${/^SLOY/.test(o['Доставка за сметка на'] || '') ? '' : ' checked'}><span>Доставката се плаща от получателя (махни отметката при безплатна доставка)</span></label>
+      </div>
+      <div class="order-actions">
+        <button class="btn btn-ghost btn-sm" type="button" data-e-calc>Пресметни цената</button>
+        <button class="btn btn-primary btn-sm" type="button" data-e-create>Създай товарителница</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-e-close>Затвори</button>
+        <span class="admin-msg" data-e-msg></span>
+      </div>`;
+  };
+  const fillEcontOffices = (box, offices, pick) => {
+    const here = S.econtIn(offices, $('[data-e-city]', box).value);
+    const sel = $('[data-e-office]', box);
+    const prev = pick || sel.value;
+    sel.innerHTML = `<option value="">${here.length ? 'Избери офис' : 'Няма офис в този град'}</option>`
+      + here.map(x => `<option value="${esc(x.code)}"${x.code === prev ? ' selected' : ''}>${esc(S.econtText(x, false))}</option>`).join('');
+  };
+  const econtParams = (box, o, mode) => {
+    const toAddress = $('[data-e-mode]', box).value === 'address';
+    return {
+      order: o['Поръчка'], mode,
+      officeCode: toAddress ? '' : $('[data-e-office]', box).value,
+      city: $('[data-e-city]', box).value, postCode: $('[data-e-pc]', box).value, street: $('[data-e-street]', box).value,
+      weight: $('[data-e-weight]', box).value, packs: $('[data-e-packs]', box).value, cod: $('[data-e-cod]', box).value,
+      description: $('[data-e-desc]', box).value, receiverPays: $('[data-e-rp]', box).checked,
+    };
+  };
+  const priceText = r => `${fmt(r.price)} общо · получателят плаща ${fmt(r.receiverDue || 0)} · ти — ${fmt(r.senderDue || 0)}${r.expected ? ` · доставка ~${r.expected}` : ''}`;
+  $('#orders').addEventListener('click', async e => {
+    const card = e.target.closest('.order-card');
+    if (!card || !e.target.closest('[data-econt], [data-e-calc], [data-e-create], [data-e-close], [data-econt-status], [data-econt-delete]')) return;
+    const o = D.orders.find(x => x['Поръчка'] === card.dataset.order);
+    const box = $('.order-econt', card);
+    const say = (msg, el = $('[data-e-msg]', box)) => { if (el) el.textContent = msg; };
+    if (e.target.closest('[data-econt]')) {
+      box.innerHTML = '<p class="admin-msg">Зареждаме офисите на Еконт…</p>';
+      box.hidden = false;
+      const offices = await S.econtOffices();
+      if (!econtCities) {
+        econtCities = document.createElement('datalist');
+        econtCities.id = 'tablo-econt-cities';
+        econtCities.innerHTML = [...new Set(offices.map(x => x.city))].map(c => `<option value="${esc(c)}">`).join('');
+        document.body.append(econtCities);
+      }
+      box.innerHTML = econtBoxHTML(o, offices);
+      fillEcontOffices(box, offices, String(o['Еконт офис'] || ''));
+      $('[data-e-city]', box).addEventListener('input', () => fillEcontOffices(box, offices));
+      $('[data-e-mode]', box).addEventListener('change', ev => {
+        const toAddress = ev.target.value === 'address';
+        $$('[data-e-office-box]', box).forEach(x => { x.hidden = toAddress; });
+        $$('[data-e-addr-box]', box).forEach(x => { x.hidden = !toAddress; });
+      });
+      return;
+    }
+    if (e.target.closest('[data-e-close]')) { box.hidden = true; return; }
+    if (e.target.closest('[data-e-calc]')) {
+      say('Питаме Еконт…');
+      try { say(priceText(await api('econt', econtParams(box, o, 'calculate')))); } catch (err) { say(failed(err)); }
+      return;
+    }
+    if (e.target.closest('[data-e-create]')) {
+      const btn = e.target.closest('[data-e-create]');
+      btn.disabled = true;
+      say('Създаваме товарителницата…');
+      try {
+        const r = await api('econt', econtParams(box, o, 'create'));
+        Object.assign(o, { 'Товарителница': r.shipment, 'Етикет': r.pdf });
+        $('[data-tracking]', card).value = r.shipment;
+        box.hidden = true;
+        $('.econt-row', card).outerHTML = econtRowHTML(o);
+        $('[data-econt-msg]', card).textContent = `Създадена ✓ ${priceText(r)}${r.live ? '' : ' · ТЕСТОВА'}. Отпечатай етикета, а щом я предадеш — статус „Изпратена“ и „Пиши на клиента“.`;
+      } catch (err) {
+        say(failed(err));
+      } finally {
+        btn.disabled = false;
+      }
+      return;
+    }
+    const msg = $('[data-econt-msg]', card);
+    if (e.target.closest('[data-econt-status]')) {
+      msg.textContent = 'Питаме Еконт…';
+      try {
+        const r = await api('econtStatus', { shipment: o['Товарителница'] });
+        msg.textContent = [r.status || 'Няма движение още', ...r.events].join(' · ') + (r.cdPaid ? ` · наложеният платеж е изплатен: ${fmt(r.cdPaid)}` : r.cdCollected ? ` · наложеният платеж е събран: ${fmt(r.cdCollected)}` : '');
+      } catch (err) { msg.textContent = failed(err); }
+      return;
+    }
+    if (e.target.closest('[data-econt-delete]')) {
+      if (!window.confirm(`Да изтрия ли товарителница ${o['Товарителница']} в Еконт?`)) return;
+      msg.textContent = 'Изтриваме…';
+      try {
+        await api('econtDelete', { order: o['Поръчка'] });
+        Object.assign(o, { 'Товарителница': '', 'Етикет': '' });
+        $('[data-tracking]', card).value = '';
+        $('.econt-row', card).outerHTML = econtRowHTML(o);
+      } catch (err) { msg.textContent = failed(err); }
+    }
+  });
 
   // ---------- Запитвания ----------
   const contactHTML = c => String(c || '').split(' · ').filter(has).map(p => {

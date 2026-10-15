@@ -919,6 +919,18 @@ body.locked { overflow: hidden; }
 .admin-table tr.low td:first-child, .admin-table tr.low td:nth-child(2) { color: var(--ink-3); text-decoration: line-through; }
 .admin-table tr.bad { background: #fff2f1; }
 .admin-hint { margin-top: 14px; font-size: 14px; color: var(--ink-3); }
+.econt-office select { width: 100%; }
+.econt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 15px; }
+.order-econt { display: grid; gap: 12px; margin-top: 14px; padding: 14px; background: var(--bg); border: 2px dashed var(--blue); border-radius: 14px; }
+.order-econt .order-actions { margin-top: 0; }
+.econt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 12px; }
+.econt-grid .wide { grid-column: 1 / -1; }
+.econt-grid .field { margin: 0; }
+.econt-grid select, .econt-grid input:not([type="checkbox"]) { width: 100%; }
+.econt-test { padding: 8px 12px; font-size: 14px; font-weight: 700; background: var(--t-sun); border-radius: 10px; }
+.field-hint { display: block; margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--err); }
+.field-hint:empty { display: none; }
+.postcode-field { max-width: 180px; }
 .admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
 .stat { display: grid; gap: 2px; padding: 12px 16px; background: var(--paper); border: 2px solid var(--ink); border-radius: 16px; }
 .stat span { font-size: 13px; font-weight: 700; color: var(--ink-3); }
