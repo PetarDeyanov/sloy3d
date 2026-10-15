@@ -370,9 +370,12 @@ window.SLOY_SHOP = (() => {
 
       const orderNo = newOrderNo();
       submitBtn.disabled = true;
+      let slow;
       try {
         const { subject, fields, lines = [], total = '', amount } = await build(orderNo, d, setStatus);
         setStatus(t('Изпращаме…'));
+        // Google таблицата записва поръчката и праща имейлите — отнема 5–15 секунди
+        slow = setTimeout(() => setStatus(t('Записваме поръчката — още няколко секунди…')), 4000);
         const sent = await sendOrder(subject, {
           'Поръчка': orderNo,
           'Име': d.name,
@@ -396,6 +399,7 @@ window.SLOY_SHOP = (() => {
       } catch {
         setStatus(t('Не успяхме да изпратим поръчката. Опитай пак или ни пиши във Viber.'), 'err');
       } finally {
+        clearTimeout(slow);
         submitBtn.disabled = false;
       }
     });
