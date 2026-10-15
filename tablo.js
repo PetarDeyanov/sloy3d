@@ -33,11 +33,19 @@
   const failed = err => { if (/ключ/i.test(err.message)) logout(err.message); return err.message; };
 
   // ---------- Вход ----------
+  // ключът е xxxx-xxxx-xxxx-xxxx (малки латински букви и цифри). Поправяме главни букви, интервали, липсващи тирета,
+  // кирилски букви, които изглеждат като латинските, и цял ред, копиран от „Execution log“ („Ключ за таблото: …“)
+  const LOOK = { 'а': 'a', 'в': 'b', 'е': 'e', 'к': 'k', 'м': 'm', 'н': 'h', 'о': 'o', 'р': 'p', 'с': 'c', 'т': 't', 'у': 'y', 'х': 'x' };
+  const cleanKey = s => {
+    const t = String(s).toLowerCase().replace(/[а-я]/g, c => LOOK[c] || c).replace(/\s+/g, '');
+    const all = [...t.matchAll(/([a-z0-9]{4})-?([a-z0-9]{4})-?([a-z0-9]{4})-?([a-z0-9]{4})/g)];
+    return all.length ? all[all.length - 1].slice(1).join('-') : t;
+  };
   const loginForm = $('#login-form');
   loginForm.addEventListener('submit', async e => {
     e.preventDefault();
     const st = $('.form-status', loginForm);
-    key = loginForm.key.value.trim();
+    key = cleanKey(loginForm.key.value);
     if (!key) { st.textContent = 'Въведи ключа.'; return; }
     st.textContent = 'Проверяваме…';
     try {

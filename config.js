@@ -2,7 +2,7 @@
 // Празна стойност ("") = съответният бутон/линк се скрива.
 window.SLOY_CONFIG = {
   phone: "+359 XXX XXX XXX",   // TODO: твоят номер (ползва се и за бутона за Viber)
-  email: "zdravei@sloy.bg",    // TODO: имейл за заявки
+  email: "sloy.3dprint@gmail.com",   // имейлът на магазина (на него идват и поръчките от Google таблицата)
   facebook: "",                // напр. "https://www.facebook.com/sloy3d"
   messenger: "",               // напр. "https://m.me/sloy3d"
   web3formsKey: "",            // безплатен ключ от https://web3forms.com (без него формата отваря имейл програмата)
