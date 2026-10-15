@@ -261,6 +261,10 @@ window.SLOY_I18N = (() => {
     "Последен ден за поръчка: {date}.": "Last day to order: {date}.",
     "Попълни полетата, отбелязани със звездичка.": "Please fill in the fields marked with an asterisk.",
     "Изпращаме…": "Sending…",
+    // потвърждението, което клиентът получава по имейл
+    " (доставката е безплатна)": " (free delivery)",
+    " + доставка": " + delivery",
+    " — ориентировъчно, ще го потвърдим": " — approximate, we'll confirm it",
     "Не успяхме да изпратим поръчката. Опитай пак или ни пиши във Viber.": "We couldn't send your order. Try again or message us on Viber.",
     "Не успяхме да изпратим заявката. Пиши ни директно във Viber или на имейл.": "We couldn't send your request. Please message us on Viber or by email.",
     "Отворихме имейла ти с готово съобщение — остава само да натиснеш „Изпрати“.": "We opened your email app with a ready message — just press “Send”.",

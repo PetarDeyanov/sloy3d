@@ -284,6 +284,9 @@ S.setupCheckout(form, {
     return {
       subject: `Поръчка от калкулатора ${orderNo} — ${total}${lastTotals.express ? ' — ЕКСПРЕСНА' : ''}`,
       fields: { 'Модели': lines, ...S.totalsFields(lastTotals), 'Общо': `${total}${lastTotals.freeShip ? ' (доставката е безплатна)' : ' + доставка'} — ориентировъчно, потвърждава се` },
+      lines: items.map(it => `${it.name} — ${t(materials[it.mat].label)}, ${colorsOf(it).map(c => t(c)).join(' + ')}, ${it.scale}% × ${it.qty} = ${fmt(lineOf(it))}`),
+      amount: lastTotals.total,
+      total: total + t(lastTotals.freeShip ? ' (доставката е безплатна)' : ' + доставка') + t(' — ориентировъчно, ще го потвърдим'),
     };
   },
   onSuccess: orderNo => {

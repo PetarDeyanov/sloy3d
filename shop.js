@@ -310,14 +310,24 @@ window.SLOY_SHOP = (() => {
   const bindMaterialTips = (container, scroller) => bindTips(container, '.mat', l => matHTML(l.dataset.mat), scroller);
 
   // ---------- Изпращане ----------
-  // Web3Forms, а без ключ — отваря имейл програмата на клиента с готово съобщение.
-  const sendOrder = async (subject, fields, replyTo) => {
+  // 1) Google таблицата (Apps Script): записва поръчката в таблото и праща имейлите — до нас и потвърждение до клиента.
+  // 2) Без нея или ако не отговаря — Web3Forms. 3) Без ключ — имейл програмата на клиента с готово съобщение.
+  // fields = полетата за нашия имейл (на български); extra = { customer, amount } за таблицата.
+  // Връща { order } — номера, с който е записана (таблицата сменя номера, ако е зает).
+  const sendOrder = async (subject, fields, replyTo, extra = {}) => {
+    if (scriptUrl) {
+      try {
+        const res = await fetch(scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'order', order: fields['Поръчка'], subject, lang, fields, ...extra }) });
+        const j = await res.json();
+        if (j.ok) return { order: j.order || fields['Поръчка'] };
+      } catch { /* таблицата не отговаря — пращаме по имейл */ }
+    }
     if (!cfg.web3formsKey) {
       const body = Object.entries(fields)
         .map(([k, v]) => String(v).includes('\n') ? `\n${k}:\n${v}\n` : `${k}: ${v}`)
         .join('\n');
       location.href = `mailto:${cfg.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      return;
+      return { order: fields['Поръчка'] };
     }
     const res = await fetch('https://api.web3forms.com/submit', {
       method: 'POST',
@@ -329,17 +339,12 @@ window.SLOY_SHOP = (() => {
     });
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Web3Forms error');
-  };
-
-  // копие на поръчката в Google таблицата (лист „Поръчки“) — оттам е таблото със статусите
-  const logOrder = (orderNo, subject, d) => {
-    if (!scriptUrl) return;
-    const { botcheck, consent, ...data } = d;
-    fetch(scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'order', order: orderNo, subject, lang, data }) }).catch(() => { /* имейлът вече е изпратен */ });
+    return { order: fields['Поръчка'] };
   };
 
   // ---------- Форма за доставка ----------
-  // build(orderNo, data) връща { subject, fields } (може и async — напр. качване на файлове).
+  // build(orderNo, data) връща { subject, fields, lines, total, amount } (може и async — напр. качване на файлове).
+  // lines / total = продуктите и сумата на езика на клиента — за потвърждението, което получава по имейл.
   const setupCheckout = (form, { build, onSuccess }) => {
     const status = $('.form-status', form);
     const submitBtn = $('button[type=submit]', form);
@@ -366,9 +371,9 @@ window.SLOY_SHOP = (() => {
       const orderNo = newOrderNo();
       submitBtn.disabled = true;
       try {
-        const { subject, fields } = await build(orderNo, d, setStatus);
+        const { subject, fields, lines = [], total = '', amount } = await build(orderNo, d, setStatus);
         setStatus(t('Изпращаме…'));
-        await sendOrder(subject, {
+        const sent = await sendOrder(subject, {
           'Поръчка': orderNo,
           'Име': d.name,
           'Телефон': d.phone,
@@ -380,12 +385,14 @@ window.SLOY_SHOP = (() => {
           'Бележка': d.note || '—',
           ...(lang === 'en' ? { 'Език': 'English — отговори на английски' } : {}),
           ...fields,
-        }, d.email);
-        logOrder(orderNo, subject, { ...d, ...fields });
+        }, d.email, {
+          amount,
+          customer: { lines, total, delivery: t(d.delivery), address: `${d.city} — ${d.address}`, payment: t(d.payment) },
+        });
         form.reset();
         form.classList.remove('tried');
         setStatus('');
-        onSuccess(orderNo);
+        onSuccess(sent.order);
       } catch {
         setStatus(t('Не успяхме да изпратим поръчката. Опитай пак или ни пиши във Viber.'), 'err');
       } finally {

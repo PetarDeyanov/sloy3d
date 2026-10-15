@@ -687,6 +687,9 @@
       return {
         subject: `Персонализирана поръчка ${orderNo} — ${total}${lastTotals.express ? ' — ЕКСПРЕСНА' : ''}`,
         fields: { 'Продукти': lines, ...S.totalsFields(lastTotals), 'Общо': `${total}${lastTotals.freeShip ? ' (доставката е безплатна)' : ' + доставка'} — ориентировъчно, потвърждава се` },
+        lines: items.map(it => `${it.name} (${it.meta}) × ${it.qty} = ${fmt(it.unit * it.qty)}`),
+        amount: lastTotals.total,
+        total: total + t(lastTotals.freeShip ? ' (доставката е безплатна)' : ' + доставка') + t(' — ориентировъчно, ще го потвърдим'),
       };
     },
     onSuccess: orderNo => {

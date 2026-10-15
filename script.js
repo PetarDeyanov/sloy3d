@@ -18,6 +18,36 @@
   bind('facebook', cfg.facebook, cfg.facebook);
   bind('messenger', cfg.messenger, cfg.messenger);
   $$('[data-company]').forEach(el => { el.textContent = cfg.company || ''; el.hidden = !cfg.company; });
+
+  // ---------- Изпращане на запитвания ----------
+  // Google таблицата (Apps Script) записва запитването в таблото и ни праща имейл; без нея — Web3Forms,
+  // а без ключ — имейл програмата на клиента (quiet = без нея — за pop-up-а с отстъпката).
+  // Връща 'mailto', ако е отворена имейл програмата, иначе 'sent'.
+  const scriptUrl = cfg.appsScriptUrl || '';
+  const sendLead = async (kind, subject, fields, replyTo, quiet = false) => {
+    if (lang === 'en') fields = { ...fields, 'Език': 'English — отговори на английски' };
+    if (scriptUrl) {
+      try {
+        const res = await fetch(scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'lead', kind, subject, lang, fields }) });
+        if ((await res.json()).ok) return 'sent';
+      } catch { /* таблицата не отговаря — пробваме по имейл */ }
+    }
+    if (!cfg.web3formsKey) {
+      if (quiet) return 'sent';
+      const body = Object.entries(fields).map(([k, v]) => String(v).includes('\n') ? `\n${k}:\n${v}` : `${k}: ${v}`).join('\n');
+      location.href = `mailto:${cfg.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      return 'mailto';
+    }
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ access_key: cfg.web3formsKey, subject, from_name: 'SLOY 3D — сайт', ...(replyTo ? { replyto: replyTo } : {}), ...fields }),
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message);
+    return 'sent';
+  };
+  const isEmail = s => /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(String(s || '').trim());
   $$('[data-year]').forEach(el => { el.textContent = new Date().getFullYear(); });
 
   // ---------- Навигация ----------
@@ -204,22 +234,11 @@
       const d = Object.fromEntries(new FormData(pform));
       if (d.botcheck) return;
       try {
-        if (cfg.web3formsKey) {
-          pstatus.textContent = t('Изпращаме…');
-          pstatus.className = 'form-status';
-          const res = await fetch('https://api.web3forms.com/submit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify({
-              access_key: cfg.web3formsKey, from_name: 'SLOY 3D — сайт',
-              subject: `Нов клиент за ${pct}% отстъпка — ${d.name}`,
-              ...{ replyto: d.email }, 'Име': d.name, 'Имейл': d.email, 'Оферта': `${pct}% отстъпка на първа поръчка`, 'Страница': location.pathname,
-              ...(lang === 'en' ? { 'Език': 'English — отговори на английски' } : {}),
-            }),
-          });
-          const json = await res.json();
-          if (!json.success) throw new Error(json.message);
-        }
+        pstatus.textContent = t('Изпращаме…');
+        pstatus.className = 'form-status';
+        await sendLead('promo', `Нов клиент за ${pct}% отстъпка — ${d.name}`,
+          { 'Име': d.name, 'Имейл': d.email, 'Оферта': `${pct}% отстъпка на първа поръчка`, 'Страница': location.pathname }, d.email, true);
+        pstatus.textContent = '';
         savePromo({ claimed: Date.now(), name: d.name, email: d.email });
         pform.hidden = true;
         $('.promo-done', box).hidden = false;
@@ -244,24 +263,14 @@
       if (d.botcheck) return;
       const fields = {};
       [...lf.elements].forEach(el => { if (el.dataset.label && d[el.name]) fields[el.dataset.label] = d[el.name]; });
-      if (lang === 'en') fields['Език'] = 'English — отговори на английски';
       const subject = `${lf.dataset.lead} — ${d.company || d.name || ''}`;
-      if (!cfg.web3formsKey) {
-        const body = Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n');
-        location.href = `mailto:${cfg.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        say(t('Отворихме имейла ти с готово съобщение — остава само да натиснеш „Изпрати“.'), 'ok');
-        return;
-      }
       btn.disabled = true;
       say(t('Изпращаме…'));
       try {
-        const res = await fetch('https://api.web3forms.com/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ access_key: cfg.web3formsKey, subject, from_name: 'SLOY 3D — сайт', ...(d.email ? { replyto: d.email } : {}), ...fields }),
-        });
-        const json = await res.json();
-        if (!json.success) throw new Error(json.message);
+        if (await sendLead(lf.dataset.kind || 'b2b', subject, fields, d.email) === 'mailto') {
+          say(t('Отворихме имейла ти с готово съобщение — остава само да натиснеш „Изпрати“.'), 'ok');
+          return;
+        }
         lf.hidden = true;
         document.getElementById(lf.dataset.done).hidden = false;
       } catch {
@@ -295,27 +304,18 @@
       delete d.botcheck;
 
       const subject = `Заявка от ${d.name} — ${d.category || 'без категория'}`;
-      if (!cfg.web3formsKey) {
-        const body = [
-          `Име: ${d.name}`, `Контакт: ${d.contact}`, `Да отговорим по: ${d.reply}`,
-          `Категория: ${d.category || '—'}`, `Има: ${d.source || '—'}`, `Линк: ${d.link || '—'}`, `Брой: ${d.qty || 1}`,
-          '', d.message,
-        ].join('\n');
-        location.href = `mailto:${cfg.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        setStatus(t('Отворихме имейла ти с готово съобщение — остава само да натиснеш „Изпрати“.'), 'ok');
-        return;
-      }
-
+      const fields = {
+        'Име': d.name, 'Контакт': d.contact, 'Да отговорим по': d.reply,
+        'Категория': d.category || '—', 'Има': d.source || '—', 'Линк': d.link || '—', 'Брой': d.qty || 1,
+        'Описание': d.message,
+      };
       submitBtn.disabled = true;
       setStatus(t('Изпращаме…'));
       try {
-        const res = await fetch('https://api.web3forms.com/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ access_key: cfg.web3formsKey, subject, from_name: 'SLOY 3D — сайт', ...d, ...(lang === 'en' ? { 'Език': 'English — отговори на английски' } : {}) }),
-        });
-        const json = await res.json();
-        if (!json.success) throw new Error(json.message);
+        if (await sendLead('idea', subject, fields, isEmail(d.contact) ? d.contact.trim() : '') === 'mailto') {
+          setStatus(t('Отворихме имейла ти с готово съобщение — остава само да натиснеш „Изпрати“.'), 'ok');
+          return;
+        }
         form.hidden = true;
         success.hidden = false;
       } catch {

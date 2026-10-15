@@ -540,9 +540,15 @@
           + `\n   Файл: ${mwUrl(p)}`;
       }).join('\n');
       lastTotals = totals();
+      const lines = cart.map(i => {
+        const p = byId(i.id);
+        return `${pick(p, 'name')}${p.sizes ? ` (${t(sizeOf(p, i.size).label)})` : ''} — ${t(materials[i.mat].label)}, ${colorsOf(i).map(c => t(c)).join(' + ')} × ${i.qty} = ${fmt(lineTotal(i))}`;
+      });
       return {
         subject: `Нова поръчка ${orderNo} — ${total}${lastTotals.express ? ' — ЕКСПРЕСНА' : ''}`,
         fields: { 'Продукти': items, ...S.totalsFields(lastTotals), 'Общо': lastTotals.freeShip ? `${total} (доставката е безплатна)` : `${total} + доставка` },
+        lines, amount: lastTotals.total,
+        total: total + (lastTotals.freeShip ? t(' (доставката е безплатна)') : t(' + доставка')),
       };
     },
     onSuccess: orderNo => {
