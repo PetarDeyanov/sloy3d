@@ -222,7 +222,7 @@
   const pdEl = $('#product-drawer');
   const pd = { product: null, mat: null, color: null, ncolors: 1, extra: [], qty: 1, size: 0 };
 
-  // 3D преглед — появява се, ако има файл models/<id>.stl
+  // 3D преглед — появява се, ако има файл models/<id>.glb или .stl (размер с model: — свой файл)
   let viewerModule = null;
   let viewer = null;
   let modelToken = 0;
@@ -237,23 +237,29 @@
     viewer.setFinish(S.finishFor(pd.mat, pd.color));
     viewer.setColor(S.previewColor(pd.color));
   };
-  const try3D = async p => {
+  // swap = смяна на размера: изгледът (3D или снимка) остава, сменя се само моделът
+  const try3D = async (p, swap = false) => {
     const token = ++modelToken;
-    $('#pd-views').hidden = true;
-    setView('photo');
+    const name = p.sizes?.[pd.size]?.model || p.id;
+    if (!swap) {
+      $('#pd-views').hidden = true;
+      setView('photo');
+    }
     try {
       // 3D прегледът от MakerWorld (.glb), а ако го няма — собствен STL
       let kind = 'glb';
-      let res = await fetch(`models/${p.id}.glb`);
-      if (!res.ok) { kind = 'stl'; res = await fetch(`models/${p.id}.stl`); }
+      let res = await fetch(`models/${name}.glb`);
+      if (!res.ok) { kind = 'stl'; res = await fetch(`models/${name}.stl`); }
       if (!res.ok || token !== modelToken) return;
       const buffer = await res.arrayBuffer();
       viewerModule ||= await import('./viewer.js');
       if (token !== modelToken) return;
       const model = kind === 'glb' ? await viewerModule.parseGLB(buffer) : viewerModule.parseSTL(buffer);
       if (token !== modelToken) return;
-      $('#pd-views').hidden = false;
-      setView('3d');
+      if ($('#pd-views').hidden) {
+        $('#pd-views').hidden = false;
+        setView('3d');
+      }
       viewer ||= viewerModule.createViewer($('#pd-3d'));
       viewer.load(model.positions);
       paint3D();
@@ -301,6 +307,7 @@
     pd.size = +e.target.value;
     renderSizeInfo();
     renderPrice();
+    if (pd.product.sizes.some(s => s.model)) try3D(pd.product, true);
   });
   S.bindTips($('#pd-sizes'), '.size-chip', l => sizeTipHTML(+l.dataset.size), $('.drawer-panel', pdEl));
   const renderExtra = () => {

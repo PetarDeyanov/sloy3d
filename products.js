@@ -13,6 +13,7 @@
 // на принтове (CC0, CC BY, CC BY-SA). NC (Non-Commercial) и „Standard Digital File License“ НЕ стават.
 // При CC BY / BY-SA авторът ТРЯБВА да е посочен — сайтът го показва автоматично в панела на продукта.
 // 3D преглед: сложи STL файла като models/<id>.stl (напр. models/speedloader.stl) и той се появява сам.
+// Размер с различен файл: size(..., { model: 'socom-suppressor-short' }) → models/socom-suppressor-short.glb
 window.SLOY_CATALOG = (() => {
   const MW = 'https://makerworld.bblmw.com/makerworld/model/';
   const mw = (id, by, lic, title, img) => ({ id, by, lic, title, img: MW + img });
@@ -1032,9 +1033,9 @@ window.SLOY_CATALOG = (() => {
         mw: mw(3425133, 'z3r0c1ph3r', 'BY', 'Micro SD card Suitcase', 'US343ad4c7de44b9/design/10cde4036285dc55.jpg') },
       { id: 'socom-suppressor', cat: 'airsoft', sub: 'gun', grams: 92, hours: 2.6, materials: SOLID,
         sizes: [
-          size('Къс', [38, 38, 92], 68, 1.9),
+          size('Къс', [38, 38, 92], 68, 1.9, { model: 'socom-suppressor-short' }),
           size('Среден', [38, 38, 127], 92, 2.6, { def: true }),
-          size('Дълъг', [38, 38, 162], 117, 3.2)],
+          size('Дълъг', [38, 38, 162], 117, 3.2, { model: 'socom-suppressor-long' })],
         fits: ['universal'], std: '14 мм резба', options: [THREAD],
         name: 'Декоративен заглушител в 3 дължини (14 мм)', desc: 'Декоративен заглушител за airsoft с обратна резба 14 мм (CCW) — или права (CW), ако репликата ти е с такава. Печата се без подпори. Само за airsoft реплики.',
         en: { name: "Mock suppressor in 3 lengths (14 mm)", desc: "A decorative airsoft mock suppressor with a 14 mm counter-clockwise (CCW) thread — or clockwise (CW) if your replica needs it. Printed without supports. For airsoft replicas only." },
