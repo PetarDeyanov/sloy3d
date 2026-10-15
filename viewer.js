@@ -53,6 +53,14 @@ export async function parseGLB(buffer) {
   const positions = new Float32Array(parts.reduce((s, a) => s + a.length, 0));
   let off = 0;
   for (const a of parts) { positions.set(a, off); off += a.length; }
+  // glTF е в метри (файловете от MakerWorld), а прегледът и цената — в милиметри
+  let ext = 0;
+  for (let k = 0; k < 3; k++) {
+    let lo = Infinity, hi = -Infinity;
+    for (let i = k; i < positions.length; i += 3) { if (positions[i] < lo) lo = positions[i]; if (positions[i] > hi) hi = positions[i]; }
+    ext = Math.max(ext, hi - lo);
+  }
+  if (ext < 5) for (let i = 0; i < positions.length; i++) positions[i] *= 1000;
   // glTF по правило е с Y нагоре. Ако моделът не стои върху Z = 0, а върху Y = 0, го обръщаме към Z нагоре.
   let minY = Infinity, minZ = Infinity;
   for (let i = 0; i < positions.length; i += 3) {
