@@ -19,15 +19,17 @@ window.SLOY_SHOP = (() => {
   // null = всичко е налично. Отговорът на таблицата се пази 10 минути в браузъра.
   const STOCK_KEY = 'sloy-stock';
   let stock = window.SLOY_CATALOG.stock || null;   // { 'PLA': ['Черен', 'Бял'], … }
+  let cardOn = false;   // плащане с карта / Apple Pay / Google Pay — когато в таблицата има ключ за Stripe
   try {
     const c = JSON.parse(localStorage.getItem(STOCK_KEY));
-    if (scriptUrl && c?.stock && Date.now() - c.at < 10 * 60 * 1000) stock = c.stock;
+    if (scriptUrl && c?.stock && Date.now() - c.at < 10 * 60 * 1000) { stock = c.stock; cardOn = !!c.card; }
   } catch { /* без памет */ }
   if (scriptUrl) {
     fetch(`${scriptUrl}?action=stock`).then(r => r.json()).then(j => {
       if (!j.ok || !j.stock) return;
       stock = j.stock;
-      try { localStorage.setItem(STOCK_KEY, JSON.stringify({ at: Date.now(), stock })); } catch { /* без памет */ }
+      cardOn = !!j.card;
+      try { localStorage.setItem(STOCK_KEY, JSON.stringify({ at: Date.now(), stock, card: cardOn })); } catch { /* без памет */ }
       document.dispatchEvent(new Event('sloy:stock'));   // страниците прерисуват отворените панели
     }).catch(() => { /* таблицата не отговаря — остава последното известно */ });
   }
@@ -319,7 +321,7 @@ window.SLOY_SHOP = (() => {
       try {
         const res = await fetch(scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'order', order: fields['Поръчка'], subject, lang, fields, ...extra }) });
         const j = await res.json();
-        if (j.ok) return { order: j.order || fields['Поръчка'], bank: j.bank || '' };
+        if (j.ok) return { order: j.order || fields['Поръчка'], bank: j.bank || '', pay: j.pay || '' };
       } catch { /* таблицата не отговаря — пращаме по имейл */ }
     }
     if (!cfg.web3formsKey) {
@@ -377,6 +379,15 @@ window.SLOY_SHOP = (() => {
         : `<p>${esc(t('Ще ти изпратим данните за превод, щом потвърдим поръчката.'))}</p>`);
   };
 
+  // плащане с карта, но страницата за плащане не се отвори — ще пратим линк
+  const showCardLater = () => {
+    const ok = document.getElementById('checkout-success');
+    if (!ok) return;
+    showBank(true, { bank: '' }, 0, false);
+    const box = $('.bank-box', ok);
+    box.innerHTML = `<strong>${t('Плащане с карта')}</strong><p>${esc(t('Поръчката е записана. Ще ти изпратим линк за плащане с карта, Apple Pay или Google Pay.'))}</p>`;
+  };
+
   // ---------- Форма за доставка ----------
   // build(orderNo, data) връща { subject, fields, lines, total, amount } (може и async — напр. качване на файлове).
   // lines / total = продуктите и сумата на езика на клиента — за потвърждението, което получава по имейл.
@@ -430,6 +441,19 @@ window.SLOY_SHOP = (() => {
       form.econtOffice.required = list;
       if (list) { form.city.setAttribute('list', cities.id); fillOffices(); } else form.city.removeAttribute('list');
     };
+    // плащане с карта / Apple Pay / Google Pay — показва се само когато е включено (ключ за Stripe в таблицата)
+    const payChips = form.querySelector('input[name="payment"]')?.closest('.chips');
+    const cardChip = document.createElement('label');
+    cardChip.className = 'chip';
+    cardChip.hidden = true;
+    cardChip.innerHTML = `<input type="radio" name="payment" value="Карта"><span>${t('Карта · Apple Pay · Google Pay')}</span>`;
+    payChips?.prepend(cardChip);
+    const syncCard = () => {
+      cardChip.hidden = !cardOn;
+      if (!cardOn && cardChip.querySelector('input').checked) form.querySelector('input[name="payment"][value="Наложен платеж"]').checked = true;
+    };
+    syncCard();
+    document.addEventListener('sloy:stock', syncCard);
     form.addEventListener('change', e => { if (e.target.name === 'delivery') sync(); });
     form.city.addEventListener('input', () => { if (!econtBox.hidden) fillOffices(); });
     form.closest('.drawer')?.addEventListener('drawer:open', sync);
@@ -482,6 +506,12 @@ window.SLOY_SHOP = (() => {
         sync();
         onSuccess(sent.order);
         showBank(d.payment === 'Банков превод', sent, amount, /^SLOY/.test(fields['Доставка за сметка на'] || ''));
+        if (d.payment === 'Карта') {
+          if (sent.pay) {
+            setStatus(t('Пренасочваме към плащането…'));
+            location.href = sent.pay;
+          } else showCardLater();
+        }
       } catch {
         setStatus(t('Не успяхме да изпратим поръчката. Опитай пак или ни пиши във Viber.'), 'err');
       } finally {

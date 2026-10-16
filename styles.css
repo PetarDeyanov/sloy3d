@@ -923,6 +923,13 @@ body.locked { overflow: hidden; }
 .bank-box { display: grid; gap: 4px; margin: 14px 0; padding: 14px 16px; text-align: left; background: var(--t-sun); border: 2px solid var(--ink); border-radius: 14px; }
 .bank-details { font-weight: 800; font-variant-numeric: tabular-nums; word-break: break-word; }
 .tag-bank { background: var(--t-sun); }
+.tag-paid { background: var(--lime); }
+.pay-status { max-width: 560px; margin: 60px auto; padding: 30px; text-align: center; background: var(--paper); border: 2px solid var(--ink); border-radius: 24px; box-shadow: var(--shadow-lg); }
+.pay-status h1 { margin-bottom: 12px; font-size: 1.8rem; text-wrap: balance; }
+.pay-status p { color: var(--ink-2); }
+.pay-status .btn { margin-top: 18px; }
+.pay-status.ok { border-color: var(--ink); background: var(--t-lime); }
+.pay-status.warn { background: var(--t-sun); }
 .econt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 15px; }
 .order-econt { display: grid; gap: 12px; margin-top: 14px; padding: 14px; background: var(--bg); border: 2px dashed var(--blue); border-radius: 14px; }
 .order-econt .order-actions { margin-top: 0; }

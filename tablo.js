@@ -169,7 +169,7 @@
         <span class="order-date">${esc(o['Дата'])}</span>
         <strong class="order-total">${esc(o['Общо'])}</strong>
       </header>
-      <p class="order-who"><strong>${esc(o['Име'])}</strong> · ${phoneLinks(o['Телефон'])}${isEmail(o['Имейл']) ? ` · <a href="mailto:${esc(o['Имейл'])}">${esc(o['Имейл'])}</a>` : ''}${o['Език'] === 'EN' ? ' · <span class="tag">EN</span>' : ''}${has(o['Експресна']) ? ' · <span class="tag tag-hot">⚡ Експресна</span>' : ''}${/превод/i.test(o['Плащане']) && o['Статус'] === 'Приета' ? ' · <span class="tag tag-bank">💳 Банков превод — провери плащането</span>' : ''}</p>
+      <p class="order-who"><strong>${esc(o['Име'])}</strong> · ${phoneLinks(o['Телефон'])}${isEmail(o['Имейл']) ? ` · <a href="mailto:${esc(o['Имейл'])}">${esc(o['Имейл'])}</a>` : ''}${o['Език'] === 'EN' ? ' · <span class="tag">EN</span>' : ''}${has(o['Експресна']) ? ' · <span class="tag tag-hot">⚡ Експресна</span>' : ''}${payTag(o)}</p>
       <p class="order-ship">${esc(o['Доставка'])}, ${esc(o['Град'])} — ${esc(o['Офис / адрес'])} · ${esc(o['Плащане'])}</p>
       ${has(o['Бележка']) ? `<p class="order-cnote">„${esc(o['Бележка'])}“</p>` : ''}
       <details class="order-items-box"${o['Статус'] === 'Приета' ? ' open' : ''}>
@@ -186,6 +186,7 @@
         <span class="admin-msg" role="status"></span>
       </div>
       ${has(o['Писано на клиента']) ? `<p class="order-written">✉ Писано на клиента: ${esc(o['Писано на клиента'])}</p>` : ''}
+      ${payRowHTML(o)}
       ${econtRowHTML(o)}
       <div class="order-compose" hidden></div>
       <div class="order-econt" hidden></div>
@@ -312,6 +313,55 @@
   $('#order-filters').addEventListener('change', e => { view.orders = e.target.value; renderOrders(); });
   $('#order-search').addEventListener('input', e => { view.orderQuery = e.target.value; renderOrders(); });
 
+  // ---------- Плащане: карта (Stripe) и банков превод ----------
+  const byCard = o => /карта/i.test(o['Плащане']);
+  const byBank = o => /превод/i.test(o['Плащане']);
+  const payTag = o => {
+    if (!byCard(o) && !byBank(o)) return '';
+    if (has(o['Платено'])) return ` · <span class="tag tag-paid">✓ Платено ${esc(o['Платено'])}</span>`;
+    return ` · <span class="tag tag-bank">${byCard(o) ? '💳 Карта — чака плащане' : '🏦 Банков превод — провери плащането'}</span>`;
+  };
+  const payRowHTML = o => {
+    if ((!byCard(o) && !byBank(o)) || o['Статус'] === 'Отказана') return '';
+    return `<div class="econt-row pay-row">
+      ${byCard(o) && !has(o['Платено']) ? '<button class="btn btn-ghost btn-sm" type="button" data-pay-check>Провери плащането</button><button class="btn btn-ghost btn-sm" type="button" data-pay-link>Нов линк за плащане</button>' : ''}
+      ${has(o['Платено']) ? '<button class="btn btn-ghost btn-sm" type="button" data-pay-undo>Не е платена</button>' : '<button class="btn btn-ghost btn-sm" type="button" data-pay-mark>Отбележи като платена</button>'}
+      <span class="admin-msg" data-pay-msg></span></div>`;
+  };
+  const refreshPay = (card, o) => {
+    $('.order-who', card).innerHTML = $('.order-who', card).innerHTML.replace(/ · <span class="tag tag-(?:paid|bank)">[^<]*<\/span>$/, '') + payTag(o);
+    const row = $('.pay-row', card);
+    if (row) row.outerHTML = payRowHTML(o);
+  };
+  $('#orders').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-pay-check], [data-pay-link], [data-pay-mark], [data-pay-undo]');
+    if (!btn) return;
+    const card = btn.closest('.order-card');
+    const o = D.orders.find(x => x['Поръчка'] === card.dataset.order);
+    const msg = $('[data-pay-msg]', card);
+    msg.textContent = 'Питаме…';
+    try {
+      if (btn.matches('[data-pay-check]')) {
+        const r = await api('payRefresh', { order: o['Поръчка'] });
+        if (r.paid) { o['Платено'] = r.when; refreshPay(card, o); }
+        else msg.textContent = r.url ? 'Още не е платена — линкът за плащане е активен.' : 'Още не е платена. Линкът е изтекъл — направи нов.';
+      }
+      if (btn.matches('[data-pay-link]')) {
+        const r = await api('payLink', { order: o['Поръчка'] });
+        try { await navigator.clipboard.writeText(r.url); msg.textContent = 'Новият линк е копиран — прати го на клиента (важи 24 ч).'; }
+        catch { msg.innerHTML = `Нов линк (важи 24 ч): <a href="${esc(r.url)}" target="_blank" rel="noopener">отвори</a>`; }
+      }
+      if (btn.matches('[data-pay-mark], [data-pay-undo]')) {
+        const r = await api('markPaid', { order: o['Поръчка'], paid: btn.matches('[data-pay-mark]'), how: byBank(o) ? 'банков превод' : 'отбелязано ръчно' });
+        o['Платено'] = r.when;
+        refreshPay(card, o);
+      }
+    } catch (err) {
+      const m = $('[data-pay-msg]', card);
+      if (m) m.textContent = failed(err);
+    }
+  });
+
   // ---------- Еконт: товарителница ----------
   const isWaybill = s => /^\d{8,}$/.test(String(s || '').trim());
   const trackUrl = n => (isWaybill(n) ? `https://www.econt.com/services/track-shipment/${String(n).trim()}` : '');
@@ -419,7 +469,7 @@
         Object.assign(o, { 'Товарителница': r.shipment, 'Етикет': r.pdf });
         $('[data-tracking]', card).value = r.shipment;
         box.hidden = true;
-        $('.econt-row', card).outerHTML = econtRowHTML(o);
+        $('.econt-row:not(.pay-row)', card).outerHTML = econtRowHTML(o);
         $('[data-econt-msg]', card).textContent = `Създадена ✓ ${priceText(r)}${r.live ? '' : ' · ТЕСТОВА'}. Отпечатай етикета, а щом я предадеш — статус „Изпратена“ и „Пиши на клиента“.`;
       } catch (err) {
         say(failed(err));
@@ -444,7 +494,7 @@
         await api('econtDelete', { order: o['Поръчка'] });
         Object.assign(o, { 'Товарителница': '', 'Етикет': '' });
         $('[data-tracking]', card).value = '';
-        $('.econt-row', card).outerHTML = econtRowHTML(o);
+        $('.econt-row:not(.pay-row)', card).outerHTML = econtRowHTML(o);
       } catch (err) { msg.textContent = failed(err); }
     }
   });
