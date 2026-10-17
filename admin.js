@@ -12,8 +12,7 @@
   let key = (() => { try { return localStorage.getItem(KEY) || ''; } catch { return ''; } })();
   let D = { orders: [], leads: [], stock: [], codes: [], statuses: [], leadStatuses: [], minGrams: 50, mailQuota: null, econt: { live: false },
     lowGrams: 150, lowPcs: 10, consumable: 'Консуматив', mailer: 'Плик за изпращане' };
-  let printReady = [];   // продукти с готов 3MF за печат (print/index.json) — отварят се направо в Bambu Studio
-  fetch('print/index.json', { cache: 'no-store' }).then(r => r.json()).then(j => { printReady = j.ready || []; if (D.orders.length) renderOrders(); }).catch(() => {});
+  const hasModel = new Map();   // models/<име>.glb има ли го — от него SLOY Print прави проекта за Bambu Studio
   let pending = null;          // по-нови данни, които чакат „Покажи“ (за да не изчезне нещо, което пишеш)
   let checkedAt = 0;
   const view = { orders: 'all', leads: 'all', orderQuery: '', leadQuery: '' };
@@ -207,6 +206,7 @@
       && (!q || [o['Поръчка'], o['Име'], o['Телефон'], o['Имейл'], o['Град'], o['Товарителница'], o['Моя бележка']].join(' ').toLowerCase().includes(q)));
     $('#orders').innerHTML = list.length ? list.map(orderHTML).join('')
       : `<p class="admin-empty">${D.orders.length ? 'Няма поръчки тук.' : 'Още няма поръчки. Щом някой поръча, ще я видиш тук и ще получиш имейл.'}</p>`;
+    checkModels($('#orders'));
   };
 
   // текст до клиента според статуса — на езика, на който е поръчал
@@ -378,27 +378,84 @@
   });
 
   // ---------- Печат: бутони към Bambu Studio ----------
-  // Bambu Studio отваря от линк само 3MF (bambustudio://open?file=…). Продукт с готов 3MF в print/ се отваря направо —
-  // поставен и с настройките, с които е записан. Иначе — страницата в MakerWorld (там „Open in Bambu Studio“
-  // зарежда профила на автора) или Printables. Файл от клиент (Drive) — сваляш го и го отваряш с двоен клик.
+  // „🖨 … → Bambu Studio“ = линк sloyprint:<данни>. На компютъра с принтера го поема SLOY Print (tools/sloy_print.py):
+  // взима 3D модела на продукта (models/<id>.glb), мащабира го за размера и отваря проект в Bambu Studio —
+  // H2D, профил и филамент за материала, цветът и бройката от поръчката, наредени на плочата.
+  // Без 3D модел — страницата в MakerWorld / Printables. Файл от клиент (Drive) — сваляш го и го отваряш с двоен клик.
+  const C = window.SLOY_CATALOG;
+  const b64url = s => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const colorHex = name => {
+    const c = C.colors.find(x => x.name === name);
+    const h = c && (/^#[0-9a-f]{6}$/i.test(c.hex) ? c.hex : c.preview);
+    return /^#[0-9a-f]{6}$/i.test(h || '') ? h : '#808080';
+  };
+  const maxDim = d => (Array.isArray(d) && d.every(Number.isFinite) ? Math.max(...d) : 0);
+  // един ред от „Продукти“: „1. Име — Материал, Цвят + Цвят × 2 = 12,00 € (≈ 40 г/бр.)“ + редове „Размер: …“, „Файл: …“
+  const printJob = (block, orderNo) => {
+    const url = block.match(/(makerworld\.com\/(?:en\/)?models|printables\.com\/model)\/(\d+)/);
+    const head = block.match(/^\d+\. (.+) — ([^,—\n]+), (.+?) × (\d+) = /);
+    if (!url) return null;
+    const site = url[1].startsWith('printables') ? 'printables' : 'makerworld';
+    const p = C.products.find(x => String(x.mw?.id) === url[2] && (x.mw?.site === 'printables') === (site === 'printables'));
+    const page = site === 'printables' ? `https://www.printables.com/model/${url[2]}` : `https://makerworld.com/en/models/${url[2]}`;
+    const job = { p, page, site, name: p ? p.name : 'Модел ' + url[2] };
+    if (!p || !head) return job;
+    const mat = Object.keys(materials).find(k => materials[k].label === head[2].trim()) || 'PLA';
+    const colors = head[3].split(' + ').map(n => n.trim());
+    let model = p.id;
+    let scale = 1;
+    let sizeLabel = '';
+    const sz = block.match(/^\s*Размер: (.+?)(?: \(|$)/m);
+    if (p.sizes && sz) {
+      const s = p.sizes.find(x => x.label === sz[1].trim());
+      const def = p.sizes.find(x => x.def) || p.sizes[0];
+      if (s) {
+        sizeLabel = s.label;
+        if (s.model) model = s.model;
+        else if (s !== def && maxDim(s.dims) && maxDim(def.dims)) scale = Math.round(maxDim(s.dims) / maxDim(def.dims) * 1000) / 1000;
+      }
+    }
+    Object.assign(job, { model, scale, mat, colors, qty: +head[4], sizeLabel });
+    job.link = 'sloyprint:' + b64url(JSON.stringify({
+      o: orderNo, n: p.name + (sizeLabel ? ` (${sizeLabel})` : ''), m: model, s: scale, mat,
+      c: colors.map(n => [n, colorHex(n)]), q: job.qty, cat: p.cat, sub: p.sub || '',
+    }));
+    return job;
+  };
   const printButtons = o => {
     const txt = String(o['Продукти'] || '');
-    const out = new Map();
-    for (const m of txt.matchAll(/makerworld\.com\/(?:en\/)?models\/(\d+)/g)) {
-      const p = window.SLOY_CATALOG.products.find(x => String(x.mw?.id) === m[1] && x.mw?.site !== 'printables');
-      const name = esc(p ? p.name : 'Модел ' + m[1]);
-      out.set('mw' + m[1], p && printReady.includes(p.id)
-        ? `<a class="btn btn-primary btn-sm" href="bambustudio://open?file=${encodeURIComponent(new URL('print/' + p.id + '.3mf', location.href).href)}">🖨 ${name} → Bambu Studio</a>`
-        : `<a class="btn btn-ghost btn-sm" href="https://makerworld.com/en/models/${m[1]}" target="_blank" rel="noopener">🖨 ${name} → MakerWorld</a>`);
-    }
-    for (const m of txt.matchAll(/printables\.com\/model\/(\d+)/g)) {
-      const p = window.SLOY_CATALOG.products.find(x => String(x.mw?.id) === m[1] && x.mw?.site === 'printables');
-      out.set('pr' + m[1], `<a class="btn btn-ghost btn-sm" href="https://www.printables.com/model/${m[1]}" target="_blank" rel="noopener">🖨 ${esc(p ? p.name : 'Модел ' + m[1])} → Printables</a>`);
+    const out = [];
+    for (const block of txt.split(/\n(?=\d+\. )/)) {
+      const j = printJob(block, o['Поръчка']);
+      if (!j) continue;
+      const other = `<a class="btn btn-ghost btn-sm" href="${j.page}" target="_blank" rel="noopener">${j.site === 'printables' ? 'Printables' : 'MakerWorld'}</a>`;
+      if (!j.link) { out.push(`<a class="btn btn-ghost btn-sm" href="${j.page}" target="_blank" rel="noopener">🖨 ${esc(j.name)} → ${j.site === 'printables' ? 'Printables' : 'MakerWorld'}</a>`); continue; }
+      const what = `${j.mat}, ${j.colors.join(' + ')} × ${j.qty}${j.scale !== 1 ? ` · мащаб ${String(j.scale).replace('.', ',')}` : ''}`;
+      out.push(`<span class="print-job" data-model="${esc(j.model)}">
+        <a class="btn btn-primary btn-sm" href="${j.link}" title="Отваря проект в Bambu Studio: H2D, ${esc(what)}">🖨 ${esc(j.name)}${j.sizeLabel ? ` (${esc(j.sizeLabel)})` : ''} → Bambu Studio</a>${other}
+        <small>${esc(what)}${j.colors.length > 1 ? ' · многоцветен — оцвети с Paint' : ''}</small></span>`);
     }
     for (const m of txt.matchAll(/drive\.google\.com\/file\/d\/([\w-]+)/g)) {
-      out.set('dr' + m[1], `<a class="btn btn-ghost btn-sm" href="https://drive.google.com/uc?export=download&id=${m[1]}" target="_blank" rel="noopener">⬇ Свали файла за печат</a>`);
+      out.push(`<a class="btn btn-ghost btn-sm" href="https://drive.google.com/uc?export=download&id=${m[1]}" target="_blank" rel="noopener">⬇ Свали файла за печат</a>`);
     }
-    return out.size ? `<div class="print-row">${[...out.values()].join('')}</div>` : '';
+    return out.length ? `<div class="print-row">${out.join('')}</div>` : '';
+  };
+  // продукт без 3D модел в сайта → бутонът става линк към MakerWorld / Printables
+  const checkModels = root => {
+    $$('.print-job[data-model]', root).forEach(el => {
+      const m = el.dataset.model;
+      const head = ext => fetch(`models/${m}.${ext}`, { method: 'HEAD' }).then(r => r.ok);
+      if (!hasModel.has(m)) hasModel.set(m, head('glb').then(ok => ok || head('stl')).catch(() => true));
+      hasModel.get(m).then(ok => {
+        if (ok || !el.isConnected) return;
+        const main = $('.btn-primary', el);
+        const alt = $('.btn-ghost', el);
+        alt.className = 'btn btn-primary btn-sm';
+        alt.textContent = main.textContent.replace('Bambu Studio', alt.textContent);
+        main.remove();
+        $('small', el).textContent += ' · няма 3D модел в сайта — отвори го оттам';
+      });
+    });
   };
 
   // ---------- Еконт: товарителница ----------
