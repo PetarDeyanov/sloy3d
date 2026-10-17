@@ -1174,10 +1174,10 @@ window.SLOY_CATALOG = (() => {
         mw: mw(194146, 'Wickieprints', 'BY', 'Keychain display rotating and stackable', 'US8063fee2aad493/design/2024-02-20_7f2c56931d737.jpg') },
       { id: 'battery-hive', cat: 'home', sub: 'storage', grams: 91, hours: 2.7, materials: PLAIN,
         sizes: [
-          size('AAA × 27', null, 58, 2, { note: 'Побира 27 батерии AAA' }),
-          size('AAA × 52', null, 90, 2.9, { note: 'Побира 52 батерии AAA' }),
+          size('AAA × 27', null, 58, 2, { note: 'Побира 27 батерии AAA', model: 'battery-hive-aaa27' }),
+          size('AAA × 52', null, 90, 2.9, { note: 'Побира 52 батерии AAA', model: 'battery-hive-aaa52' }),
           size('AA × 27', null, 91, 2.7, { def: true, note: 'Побира 27 батерии AA' }),
-          size('AA × 52', null, 147, 4.2, { note: 'Побира 52 батерии AA' })],
+          size('AA × 52', null, 147, 4.2, { note: 'Побира 52 батерии AA', model: 'battery-hive-aa52' })],
         name: 'Кутия-кошер за батерии AA/AAA', desc: 'Пчелна пита за батериите — подредени и видими.',
         en: { name: "Battery hive for AA/AAA", desc: "A honeycomb for your batteries — tidy and visible." },
         mw: mw(1838225, 'user_4069524941', 'BY', 'HivePack Battery Storage AA / AAA', 'USab1cbb4feb76bf/design/2025-09-28_aa3d527722a94.webp') },
@@ -1195,7 +1195,7 @@ window.SLOY_CATALOG = (() => {
       { id: 'screwbox', cat: 'home', sub: 'storage', grams: 145, hours: 4.5, maxColors: 2, materials: SOLID, assembly: { minutes: 5 },
         sizes: [
           size('80 мм', [80, null, null], 145, 4.5, { def: true, note: 'За стандартни винтове' }),
-          size('120 мм', [120, null, null], 189, 5.5, { note: 'За дълги винтове' })],
+          size('120 мм', [120, null, null], 189, 5.5, { note: 'За дълги винтове', model: 'screwbox-120' })],
         name: 'Кутия за винтове и дребни части', desc: 'Отделения за винтове, гайки и дребни части — всичко под ръка.',
         en: { name: "Box for screws and small parts", desc: "Compartments for screws, nuts and small parts — all at hand." },
         mw: mw(2085839, 'JuanTheMaker', 'BY', 'Maker Screwbox', 'USb57859a46b4888/design/2025-12-06_b00048736d4928.png') },
@@ -1293,8 +1293,8 @@ window.SLOY_CATALOG = (() => {
         mw: mw(1678278, 'DJMLUC', 'BY', 'Namensschild Für Hunde', 'DSM00000001678278/design/2025-08-07_0e1341874a396.png') },
       { id: 'airtag-collar', cat: 'pets', sub: 'collar', grams: 5, hours: 0.6, materials: FLEX,
         sizes: [
-          size('10 мм', null, 3, 0.5, { note: 'За каишка или нашийник до 10 мм широк' }),
-          size('19 мм', null, 4, 0.6, { note: 'За каишка или нашийник до 19 мм широк' }),
+          size('10 мм', null, 3, 0.5, { note: 'За каишка или нашийник до 10 мм широк', model: 'airtag-collar-10' }),
+          size('19 мм', null, 4, 0.6, { note: 'За каишка или нашийник до 19 мм широк', model: 'airtag-collar-19' }),
           size('25 мм', null, 5, 0.6, { def: true, note: 'За каишка или нашийник до 25 мм широк' })],
         name: 'Държач за AirTag на нашийник', desc: 'Винаги знаеш къде е любимецът ти. AirTag не е включен.',
         en: { name: "AirTag collar holder", desc: "Always know where your pet is. AirTag not included." },
