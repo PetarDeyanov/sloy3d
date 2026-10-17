@@ -287,6 +287,7 @@ S.setupCheckout(form, {
       lines: items.map(it => `${it.name} — ${t(materials[it.mat].label)}, ${colorsOf(it).map(c => t(c)).join(' + ')}, ${it.scale}% × ${it.qty} = ${fmt(lineOf(it))}`),
       amount: lastTotals.total,
       total: total + t(lastTotals.freeShip ? ' (доставката е безплатна)' : ' + доставка') + t(' — ориентировъчно, ще го потвърдим'),
+      use: items.map(it => S.useOf(it.mat, colorsOf(it), weightOf(it), it.qty)),
     };
   },
   onSuccess: orderNo => {

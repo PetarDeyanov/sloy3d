@@ -344,6 +344,14 @@ window.SLOY_SHOP = (() => {
     return { order: fields['Поръчка'] };
   };
 
+  // ---------- Какво се печата (за склада) ----------
+  // { m: материал, c: [цветове], g: грама на брой, q: брой, k: { консуматив: брой на брой } } — Google таблицата вади това
+  // от склада, когато поръчката стане „Печата се“.
+  const useOf = (mat, cols, grams, qty, assembly) => ({
+    m: mat, c: cols, g: Math.round(grams), q: qty,
+    k: Object.fromEntries(Object.entries(assembly?.items || {}).map(([key, n]) => [consumables[key]?.name || key, n])),
+  });
+
   // ---------- Офиси на Еконт ----------
   // econt-offices.json (tools/econt_offices.py): клиентът избира град и офис от списъка, а не пише свободен текст —
   // така таблото прави товарителницата с точния код на офиса. Списъкът се зарежда чак когато потрябва.
@@ -479,7 +487,7 @@ window.SLOY_SHOP = (() => {
       submitBtn.disabled = true;
       let slow;
       try {
-        const { subject, fields, lines = [], total = '', amount } = await build(orderNo, d, setStatus);
+        const { subject, fields, lines = [], total = '', amount, use = [] } = await build(orderNo, d, setStatus);
         setStatus(t('Изпращаме…'));
         // Google таблицата записва поръчката и праща имейлите — отнема 5–15 секунди
         slow = setTimeout(() => setStatus(t('Записваме поръчката — още няколко секунди…')), 4000);
@@ -496,7 +504,7 @@ window.SLOY_SHOP = (() => {
           ...(lang === 'en' ? { 'Език': 'English — отговори на английски' } : {}),
           ...fields,
         }, d.email, {
-          amount,
+          amount, use,
           ship: { office: office ? office.code : '', postCode: d.postCode || '' },
           customer: { lines, total, delivery: t(d.delivery), address: office ? shipTo : `${d.city} — ${d.address}`, payment: t(d.payment) },
         });
@@ -563,6 +571,6 @@ window.SLOY_SHOP = (() => {
     cfg, scriptUrl, t, lang, pricing, priceFor, assemblyItems,
     ncolorsHTML, maxColorsFor, fitExtra, extraColorsHTML, totals, sumLinesHTML, totalsFields, afterOrder, mountExtras, esc, fmt, clampQty, colorsFor, available, previewColor, matHTML, newOrderNo,
     materialsHTML, swatchesHTML, finishFor, bindMaterialTips, bindTips, hideTip,
-    sendOrder, setupCheckout, toast, openDrawer, closeDrawer, econtOffices, econtIn, econtText,
+    sendOrder, setupCheckout, toast, openDrawer, closeDrawer, econtOffices, econtIn, econtText, useOf,
   };
 })();

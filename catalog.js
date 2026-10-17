@@ -548,6 +548,7 @@
         subject: `Нова поръчка ${orderNo} — ${total}${lastTotals.express ? ' — ЕКСПРЕСНА' : ''}`,
         fields: { 'Продукти': items, ...S.totalsFields(lastTotals), 'Общо': lastTotals.freeShip ? `${total} (доставката е безплатна)` : `${total} + доставка` },
         lines, amount: lastTotals.total,
+        use: cart.map(i => { const p = byId(i.id); return S.useOf(i.mat, colorsOf(i), sizeOf(p, i.size).grams, i.qty, p.assembly); }),
         total: total + (lastTotals.freeShip ? t(' (доставката е безплатна)') : t(' + доставка')),
       };
     },

@@ -335,6 +335,7 @@
       meta: `${lf.size} · ${w} × ${h} ${t('мм')}`,
       email: `Литофания — ${shape.label.toLowerCase()}, ${w} × ${h} мм (${format.label.toLowerCase()}), бял PLA`,
       detail: `≈ ${Math.round(lithoGrams())} г · кадър: x ${Math.round(lf.pan.x * 100)}% · y ${Math.round(lf.pan.y * 100)}% · снимка: ${lf.file.name}`,
+      use: S.useOf(L.material, [L.color], lithoGrams(), 1, shape.assembly),
     });
   });
 
@@ -593,6 +594,7 @@
       email: `${tp.label} „${tx.line1.trim()}“${two ? ` + „${tx.line2.trim()}“` : ''} — шрифт ${fontOf().family}, ${materials[tx.mat].label}, `
         + `основа ${tx.base}${cols.length > 1 ? `, надпис ${tx.ink}` : ''}, ${tx.size} (${dims})`,
       detail: `≈ ${Math.max(1, Math.round(textGrams()))} г`,
+      use: S.useOf(tx.mat, cols, Math.max(1, textGrams()), 1, tp.assembly),
     });
   });
 
@@ -690,6 +692,7 @@
         lines: items.map(it => `${it.name} (${it.meta}) × ${it.qty} = ${fmt(it.unit * it.qty)}`),
         amount: lastTotals.total,
         total: total + t(lastTotals.freeShip ? ' (доставката е безплатна)' : ' + доставка') + t(' — ориентировъчно, ще го потвърдим'),
+        use: items.map(it => ({ ...it.use, q: it.qty })),
       };
     },
     onSuccess: orderNo => {

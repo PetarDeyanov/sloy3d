@@ -1,120 +1,12 @@
 <!doctype html>
-<html lang="bg" data-lang="bg">
+<html lang="bg">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>Табло — SLOY 3D</title>
-  <meta name="theme-color" content="#f5f1e8">
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Onest:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css">
-  <script src="i18n.js" defer></script>
-  <script src="config.js" defer></script>
-  <script src="products.js" defer></script>
-  <script src="shop.js" defer></script>
-  <script src="tablo.js" defer></script>
+  <title>Admin — SLOY 3D</title>
+  <meta http-equiv="refresh" content="0; url=admin.html">
+  <script>location.replace('admin.html' + location.hash);</script>
 </head>
-<body class="admin">
-  <header class="site-header">
-    <div class="wrap header-inner">
-      <a class="brand" href="index.html" aria-label="SLOY 3D — към сайта">
-        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-          <rect x="3" y="21" width="26" height="6" rx="2" fill="currentColor" opacity=".45"/>
-          <rect x="7" y="13" width="18" height="6" rx="2" fill="currentColor" opacity=".75"/>
-          <rect x="11" y="5" width="10" height="6" rx="2" class="brand-top"/>
-        </svg>
-        <span class="brand-word">SLOY<span class="brand-3d">3D</span></span>
-      </a>
-      <span class="admin-badge">Табло</span>
-      <button class="btn btn-ghost btn-sm admin-logout" id="logout" type="button" hidden>Изход</button>
-    </div>
-  </header>
-
-  <main id="main" class="wrap admin-main">
-    <section class="admin-card" id="setup" hidden>
-      <h1>Таблото още не е свързано</h1>
-      <p>Поръчките, запитванията, складът и промокодовете се пазят в Google таблица. Настрой я по стъпките в <code>apps-script/README.md</code> и сложи адреса ѝ в <code>config.js</code> → <code>appsScriptUrl</code>.</p>
-    </section>
-
-    <section class="admin-card" id="login" hidden>
-      <h1>Вход в таблото</h1>
-      <form id="login-form" novalidate>
-        <label class="field"><span>Ключ за таблото</span><input name="key" type="password" required autocomplete="current-password" placeholder="xxxx-xxxx-xxxx-xxxx"></label>
-        <button class="btn btn-primary" type="submit">Влез</button>
-        <p class="form-status" role="status" aria-live="polite"></p>
-        <p class="admin-hint">Ключът е в Apps Script, проект „SLOY 3D — сайт“: пусни функцията <strong>showKey</strong> и го виж в „Execution log“. Браузърът го помни, докато не натиснеш „Изход“.</p>
-      </form>
-    </section>
-
-    <section id="panel" hidden>
-      <div class="admin-stats" id="stats" aria-live="polite"></div>
-      <div class="admin-banner" id="fresh" hidden>
-        <span id="fresh-text"></span>
-        <button class="btn btn-primary btn-sm" id="fresh-show" type="button">Покажи</button>
-      </div>
-
-      <div class="tool-tabs" role="tablist" aria-label="Табло">
-        <button type="button" role="tab" data-tab="orders" aria-selected="true">Поръчки <span class="admin-count" id="count-orders" hidden></span></button>
-        <button type="button" role="tab" data-tab="leads" aria-selected="false">Запитвания <span class="admin-count" id="count-leads" hidden></span></button>
-        <button type="button" role="tab" data-tab="stock" aria-selected="false">Склад</button>
-        <button type="button" role="tab" data-tab="codes" aria-selected="false">Кодове</button>
-      </div>
-
-      <div id="tab-orders" role="tabpanel">
-        <div class="admin-bar">
-          <div class="chips" id="order-filters" role="radiogroup" aria-label="Статус"></div>
-          <input class="admin-search" id="order-search" type="search" placeholder="Търси по номер, име, телефон, град…" aria-label="Търсене в поръчките">
-          <button class="btn btn-ghost btn-sm" data-refresh type="button">Обнови</button>
-        </div>
-        <div class="admin-orders" id="orders"></div>
-      </div>
-
-      <div id="tab-leads" role="tabpanel" hidden>
-        <p class="admin-note">Запитванията от „По твоя идея“ и „За фирми“. Клиентът вече е получил имейл, че ще му отговорим до един работен ден.</p>
-        <div class="admin-bar">
-          <div class="chips" id="lead-filters" role="radiogroup" aria-label="Статус"></div>
-          <input class="admin-search" id="lead-search" type="search" placeholder="Търси по име, контакт, текст…" aria-label="Търсене в запитванията">
-          <button class="btn btn-ghost btn-sm" data-refresh type="button">Обнови</button>
-        </div>
-        <div class="admin-orders" id="leads"></div>
-      </div>
-
-      <div id="tab-stock" role="tabpanel" hidden>
-        <p class="admin-note" id="stock-summary"></p>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead><tr><th>Материал</th><th>Цвят</th><th>Грама</th><th>Бележка</th><th><span class="sr-only">Изтрий</span></th></tr></thead>
-            <tbody id="stock-rows"></tbody>
-          </table>
-        </div>
-        <div class="admin-bar">
-          <select id="add-mat" aria-label="Материал"></select>
-          <select id="add-color" aria-label="Цвят"></select>
-          <button class="btn btn-ghost btn-sm" id="add-row" type="button">+ Добави цвят</button>
-          <button class="btn btn-primary btn-sm" id="save-stock" type="button">Запази склада</button>
-          <span class="admin-msg" id="stock-status" role="status" aria-live="polite"></span>
-        </div>
-      </div>
-
-      <div id="tab-codes" role="tabpanel" hidden>
-        <p class="admin-note">Промокодовете важат на сайта веднага след „Запази“. Празно „От“ / „До“ / „Макс.“ = без ограничение. Отстъпката от pop-up-а (първа поръчка) е отделна и не е тук.</p>
-        <div class="admin-table-wrap">
-          <table class="admin-table codes-table">
-            <thead><tr><th>Код</th><th>Тип</th><th>Стойност</th><th>Мин. поръчка €</th><th>От</th><th>До</th><th>Макс.</th><th>Използван</th><th>Активен</th><th><span class="sr-only">Изтрий</span></th></tr></thead>
-            <tbody id="code-rows"></tbody>
-          </table>
-        </div>
-        <div class="admin-bar">
-          <button class="btn btn-ghost btn-sm" id="add-code" type="button">+ Нов код</button>
-          <button class="btn btn-primary btn-sm" id="save-codes" type="button">Запази кодовете</button>
-          <span class="admin-msg" id="codes-status" role="status" aria-live="polite"></span>
-        </div>
-      </div>
-    </section>
-  </main>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-</body>
+<body><p><a href="admin.html">Admin — SLOY 3D</a></p></body>
 </html>
