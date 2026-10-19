@@ -959,6 +959,8 @@ body.locked { overflow: hidden; }
 .order-cnote { margin-top: 6px; padding: 8px 12px; font-size: 15px; background: var(--t-sun); border-radius: 12px; }
 .order-mynote { flex: 1 1 220px !important; }
 .order-written { margin-top: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink-3); }
+.order-notify { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.order-actions .order-notify input { flex: none !important; width: 18px; height: 18px; padding: 0; margin: 0; accent-color: var(--ink); }
 .order-compose { display: grid; gap: 10px; margin-top: 14px; padding: 14px; background: var(--bg); border: 2px dashed var(--ink-3); border-radius: 14px; }
 .order-compose textarea { min-height: 130px; }
 .order-compose .order-actions { margin-top: 0; }

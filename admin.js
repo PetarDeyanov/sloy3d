@@ -188,6 +188,7 @@
         <input data-tracking value="${esc(o['Товарителница'] || '')}" placeholder="Товарителница" aria-label="Товарителница">
         <input class="order-mynote" data-note value="${esc(o['Моя бележка'] || '')}" placeholder="Моя бележка (вижда се само тук)" aria-label="Моя бележка">
         <button class="btn btn-primary btn-sm" type="button" data-save>Запази</button>
+        ${isEmail(o['Имейл']) ? `<label class="order-notify" title="При нов статус „${AUTO_MAILS.join('“, „')}“ клиентът получава имейл сам (веднъж за всеки статус)"><input type="checkbox" data-notify checked> ✉ имейл до клиента</label>` : ''}
         ${o['Статус'] === 'Приета' ? '<button class="btn btn-ghost btn-sm" type="button" data-start>▶ Пуснах печата</button>' : ''}
         <button class="btn btn-ghost btn-sm" type="button" data-write>Пиши на клиента</button>
         <span class="admin-msg" role="status"></span>
@@ -209,20 +210,27 @@
     checkModels($('#orders'));
   };
 
-  // текст до клиента според статуса — на езика, на който е поръчал
+  // При тези статуси Apps Script сам праща имейл до клиента (AUTO_STATUS_MAILS в Code.gs), в оформлението на сайта.
+  // „Пиши на клиента“ е за всичко друго (отказ, въпрос, промяна) и за Viber; текстът се пише тук и може да се промени.
+  const AUTO_MAILS = ['Печата се', 'Изпратена', 'Получена'];
   const message = (o, status) => {
     const en = o['Език'] === 'EN';
     const name = String(o['Име'] || '').trim().split(/\s+/)[0];
     const no = o['Поръчка'];
-    const courier = /Спиди/.test(o['Доставка']) ? (en ? 'Speedy' : 'Спиди') : /Еконт/.test(o['Доставка']) ? (en ? 'Econt' : 'Еконт') : (en ? 'courier' : 'куриер');
     const tr = o['Товарителница'];
-    const track = /Еконт/.test(courier + o['Доставка']) || has(o['Етикет']) ? trackUrl(tr) : '';
+    const track = trackUrl(tr);
+    const paid = has(o['Платено']);
     const text = {
-      'Приета': en ? `We've received your order ${no}. We'll let you know when it ships.` : `Получихме поръчката ти ${no}. Ще ти пишем, когато тръгне към теб.`,
-      'Печата се': en ? `Your order ${no} is being printed right now. We'll let you know as soon as it ships.` : `Поръчката ти ${no} вече се печата. Ще ти пишем, щом тръгне към теб.`,
-      'Изпратена': en ? `Your order ${no} has been shipped with ${courier}.${tr ? ` Tracking number: ${tr}.` : ''}${track ? ` Track it here: ${track}` : ''} Thank you!` : `Поръчката ти ${no} е изпратена с ${courier}.${tr ? ` Товарителница: ${tr}.` : ''}${track ? ` Проследи я тук: ${track}` : ''} Благодарим ти!`,
-      'Получена': en ? `Thank you for your order ${no}! We hope you like it — we'd love to see a photo.` : `Благодарим ти за поръчка ${no}! Надяваме се да ти харесва — ще се радваме на снимка.`,
-      'Отказана': en ? `Unfortunately we can't fulfil order ${no}. We'll get in touch with the details.` : `За съжаление не можем да изпълним поръчка ${no}. Ще ти пишем с подробности.`,
+      'Приета': en ? `We've received your order ${no}. We'll print it within 2–4 working days and send you the tracking number as soon as it ships.`
+        : `Получихме поръчката ти ${no}. Печатаме я до 2–4 работни дни и ти пращаме номер за проследяване, щом тръгне.`,
+      'Печата се': en ? `Your order ${no} is on the printer right now. We'll send you the tracking number as soon as it ships.`
+        : `Поръчката ти ${no} вече е на принтера. Щом я изпратим, ще ти пишем с номер за проследяване.`,
+      'Изпратена': en ? `Your order ${no} is on its way with Econt.${tr ? ` Tracking number: ${tr}.` : ''}${track ? `\nTrack it here: ${track}` : ''}\n\nIt usually arrives in 1–2 working days — Econt will text you when it does.`
+        : `Поръчката ти ${no} е на път с Еконт.${tr ? ` Товарителница: ${tr}.` : ''}${track ? `\nПроследи я тук: ${track}` : ''}\n\nОбикновено пристига за 1–2 работни дни — Еконт ще ти прати SMS.`,
+      'Получена': en ? `We hope you love your order ${no}! We'd be thrilled to see a photo — just reply to this message. If anything's wrong, send us a photo within 3 days and we'll make it right.`
+        : `Надяваме се поръчката ти ${no} да ти харесва! Ще се радваме на снимка — просто ни отговори. Ако нещо не е наред, пиши ни със снимка до 3 дни и ще го оправим.`,
+      'Отказана': en ? `Unfortunately we can't fulfil your order ${no} because [reason].${paid ? ' We\'ll refund your payment within 5 working days.' : ''} We're sorry for the trouble.`
+        : `За съжаление не можем да изпълним поръчката ти ${no}, защото [причина].${paid ? ' Ще ти върнем платената сума до 5 работни дни.' : ''} Извиняваме се за неудобството.`,
     }[status] || '';
     return {
       subject: en ? `Your SLOY 3D order ${no}` : `Поръчка ${no} — SLOY 3D`,
@@ -239,12 +247,20 @@
       <button class="btn btn-ghost btn-sm" type="button" data-close>Затвори</button>
     </div>`;
 
-  const saveOrder = async (card, o) => {
+  const setWritten = (card, text) => {
+    let w = $('.order-written', card);
+    if (!w) { w = document.createElement('p'); w.className = 'order-written'; $('.order-actions', card).after(w); }
+    w.textContent = `✉ Писано на клиента: ${text}`;
+  };
+  // notify = автоматичният имейл при нов статус (отметката „✉ имейл до клиента“)
+  const saveOrder = async (card, o, notify = $('[data-notify]', card)?.checked ?? false) => {
     const status = $('[data-status]', card).value;
     const tracking = $('[data-tracking]', card).value.trim();
     const note = $('[data-note]', card).value.trim();
-    const r = await api('status', { order: o['Поръчка'], status, tracking, note });
+    const r = await api('status', { order: o['Поръчка'], status, tracking, note, notify });
     Object.assign(o, { 'Статус': status, 'Товарителница': tracking, 'Моя бележка': note });
+    if (r.written) { o['Писано на клиента'] = r.written; setWritten(card, r.written); }
+    if (r.mailed && typeof D.mailQuota === 'number') D.mailQuota -= 1;
     if (r.used) {
       o['От склада'] = r.used;
       if (r.stock && !dirty.stock) { D.stock = r.stock; renderStock(); }
@@ -256,6 +272,7 @@
     renderStats();
     $('#order-filters').innerHTML = chips('order-filter', D.statuses, view.orders,
       s => (s === 'all' ? D.orders.length : D.orders.filter(x => x['Статус'] === s).length));
+    return r;
   };
 
   $('#orders').addEventListener('click', async e => {
@@ -268,9 +285,15 @@
     if (e.target.closest('[data-save], [data-start]')) {
       msg.textContent = 'Записваме…';
       try {
-        await saveOrder(card, o);
-        msg.textContent = o['От склада'] && $('[data-status]', card).value === 'Печата се' ? `Запазено ✓ Извадено от склада: ${o['От склада']}` : 'Запазено ✓';
-        if (!/склада/.test(msg.textContent) && $('[data-status]', card).value !== 'Приета' && isEmail(o['Имейл']) && box.hidden) msg.textContent = 'Запазено ✓ — прати и съобщение на клиента?';
+        const r = await saveOrder(card, o);
+        const status = $('[data-status]', card).value;
+        const parts = ['Запазено ✓'];
+        if (r.used && status === 'Печата се') parts.push(`Извадено от склада: ${o['От склада']}`);
+        if (r.mailed) parts.push(`Клиентът получи имейл „${r.mailed}“ ✓`);
+        if (r.mailError) parts.push(`Имейлът до клиента НЕ тръгна: ${r.mailError}`);
+        if (status === 'Изпратена' && r.mailed && !o['Товарителница']) parts.push('(без товарителница — прати я с „Пиши на клиента“)');
+        if (status === 'Отказана' && isEmail(o['Имейл']) && box.hidden) parts.push('Напиши на клиента защо — „Пиши на клиента“.');
+        msg.textContent = parts.join(' · ');
       } catch (err) {
         msg.textContent = failed(err);
       }
@@ -297,12 +320,11 @@
       btn.disabled = true;
       msg.textContent = 'Изпращаме…';
       try {
-        if ($('[data-status]', card).value !== o['Статус'] || $('[data-tracking]', card).value.trim() !== (o['Товарителница'] || '')) await saveOrder(card, o);
+        // смяна на статуса тук — без автоматичния имейл, клиентът получава написаното
+        if ($('[data-status]', card).value !== o['Статус'] || $('[data-tracking]', card).value.trim() !== (o['Товарителница'] || '')) await saveOrder(card, o, false);
         const j = await api('notify', { order: o['Поръчка'], subject: $('[data-subj]', box).value, body: $('[data-body]', box).value });
         o['Писано на клиента'] = j.written;
-        let w = $('.order-written', card);
-        if (!w) { w = document.createElement('p'); w.className = 'order-written'; box.before(w); }
-        w.textContent = `✉ Писано на клиента: ${j.written}`;
+        setWritten(card, j.written);
         box.hidden = true;
         msg.textContent = `Имейлът до ${o['Имейл']} е изпратен ✓`;
         if (typeof D.mailQuota === 'number') { D.mailQuota -= 1; renderStats(); }
