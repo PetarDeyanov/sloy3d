@@ -72,6 +72,7 @@
   // Празникът се показва seasonLeadDays дни преди датата си и изчезва след нея.
   // За преглед преди сезона: добави ?sezon=christmas към адреса.
   const catalog = window.SLOY_CATALOG;
+  const photos = catalog?.photoColors || {};   // продукти със студийна снимка (img/p/<id>.webp)
   const findSeason = () => {
     if (!catalog) return null;
     const { seasons, seasonLeadDays = 30, orderDaysBefore = 6 } = catalog;
@@ -122,7 +123,7 @@
           <a class="btn btn-primary" href="katalog.html#${season.id}">${t('Виж колекцията')}</a>
         </div>
         <div class="season-picks">
-          ${picks.map(p => `<a href="katalog.html#p-${p.id}" class="season-pick"><img src="${p.mw.img}" alt="${pick(p, 'name')}" loading="lazy" referrerpolicy="no-referrer"><span>${pick(p, 'name')}</span></a>`).join('')}
+          ${picks.map(p => `<a href="katalog.html#p-${p.id}" class="season-pick"><img src="${photos[p.id] ? `img/p/${p.id}.webp` : p.mw.img}" alt="${pick(p, 'name')}" loading="lazy" referrerpolicy="no-referrer"><span>${pick(p, 'name')}</span></a>`).join('')}
         </div>
       </div>`;
     banner.hidden = false;

@@ -7,6 +7,19 @@
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
   const byId = id => products.find(p => p.id === id);
+  // снимка: студийната (img/p/<id>.webp, еднаква за всички), а ако я няма — тази на автора от MakerWorld / Printables
+  const photoColors = window.SLOY_CATALOG.photoColors || {};
+  const photoOf = p => (photoColors[p.id] ? `img/p/${p.id}.webp` : p.mw.img);
+  const imgHTML = (p, alt) => `<img src="${photoOf(p)}" alt="${esc(alt)}" loading="lazy" referrerpolicy="no-referrer"${photoColors[p.id] ? ` data-fallback="${esc(p.mw.img)}"` : ''}>`;
+  // липсваща студийна снимка → снимката на автора
+  document.addEventListener('error', e => {
+    const img = e.target;
+    if (img.tagName === 'IMG' && img.dataset.fallback) {
+      img.src = img.dataset.fallback;
+      delete img.dataset.fallback;
+      e.stopImmediatePropagation();   // не е „без снимка“ — пробваме втората
+    }
+  }, true);
   // размер: индекс в p.sizes (по подразбиране — този с def); продукт без размери връща себе си
   const defSize = p => Math.max(0, (p.sizes || []).findIndex(s => s.def));
   const sizeOf = (p, idx) => p.sizes?.[idx ?? defSize(p)] || p;
@@ -80,7 +93,7 @@
   const grid = $('#products');
   grid.innerHTML = shown.map(p => `
     <button class="product" type="button" data-id="${p.id}" data-cat="${p.cat}">
-      <span class="product-media"><img src="${p.mw.img}" alt="${esc(pick(p, 'name'))}" loading="lazy" referrerpolicy="no-referrer"></span>
+      <span class="product-media">${imgHTML(p, pick(p, 'name'))}</span>
       <span class="product-body">
         <span class="product-cat mono">${t(categories[p.cat])}</span>
         <span class="product-name">${esc(pick(p, 'name'))}</span>
@@ -226,11 +239,23 @@
   let viewerModule = null;
   let viewer = null;
   let modelToken = 0;
+  // изгледи: photo = студийната снимка, 3d = въртящ се модел в избрания цвят, author = снимката на автора (реален принт)
   const setView = v => {
+    const p = pd.product;
     $('#pd-3d').hidden = v !== '3d';
     $('#pd-img').hidden = v === '3d';
     $('#pd-3d-hint').hidden = v !== '3d';
+    if (p && v !== '3d') {
+      const src = v === 'author' ? p.mw.img : photoOf(p);
+      if ($('#pd-img').getAttribute('src') !== src) $('#pd-img').src = src;
+    }
     $$('#pd-views button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+  };
+  const showViews = has3D => {
+    const studio = !!photoColors[pd.product.id];
+    $('#pd-views [data-view="3d"]').hidden = !has3D;
+    $('#pd-views [data-view="author"]').hidden = !studio;
+    $('#pd-views').hidden = !has3D && !studio;
   };
   const paint3D = () => {
     if (!viewer) return;
@@ -242,7 +267,7 @@
     const token = ++modelToken;
     const name = p.sizes?.[pd.size]?.model || p.id;
     if (!swap) {
-      $('#pd-views').hidden = true;
+      showViews(false);
       setView('photo');
     }
     try {
@@ -256,10 +281,7 @@
       if (token !== modelToken) return;
       const model = kind === 'glb' ? await viewerModule.parseGLB(buffer) : viewerModule.parseSTL(buffer);
       if (token !== modelToken) return;
-      if ($('#pd-views').hidden) {
-        $('#pd-views').hidden = false;
-        setView('3d');
-      }
+      if ($('#pd-views [data-view="3d"]').hidden) showViews(true);
       viewer ||= viewerModule.createViewer($('#pd-3d'));
       viewer.load(model.positions);
       paint3D();
@@ -333,10 +355,12 @@
   const openProduct = id => {
     const p = byId(id);
     if (!p || !isAvailable(p)) return;
-    Object.assign(pd, { product: p, mat: firstMat(p), ncolors: 1, extra: [], qty: 1, size: defSize(p) });
+    // цветът по подразбиране = цветът от снимката (ако го има за материала — иначе първият наличен)
+    Object.assign(pd, { product: p, mat: firstMat(p), color: photoColors[p.id] || pd.color, ncolors: 1, extra: [], qty: 1, size: defSize(p) });
     const img = $('#pd-img');
     img.parentElement.classList.remove('noimg');
-    img.src = p.mw.img;
+    img.src = photoOf(p);
+    if (photoColors[p.id]) img.dataset.fallback = p.mw.img;
     img.alt = pick(p, 'name');
     $('#pd-cat').textContent = t(categories[p.cat]) + (subLabel(p) ? ' · ' + t(subLabel(p)) : '');
     $('#pd-title').textContent = pick(p, 'name');
@@ -425,7 +449,7 @@
       const p = byId(i.id);
       return `
       <div class="cart-item" data-idx="${idx}">
-        <img src="${p.mw.img}" alt="" loading="lazy" referrerpolicy="no-referrer">
+        ${imgHTML(p, '')}
         <div>
           <p class="ci-name">${esc(pick(p, 'name'))}</p>
           <p class="ci-meta">${p.sizes ? `${esc(t(sizeOf(p, i.size).label))} · ` : ''}${t(materials[i.mat].label)} · ${esc(colorsOf(i).map(c => t(c)).join(' + '))}</p>

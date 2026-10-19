@@ -213,6 +213,8 @@ window.SLOY_I18N = (() => {
     "Моделите в каталога са на авторите си в MakerWorld и се използват според лиценза им (CC0, CC BY, CC BY-SA). Авторът е посочен при всеки продукт.": "Catalog models belong to their authors on MakerWorld and are used under their licences (CC0, CC BY, CC BY-SA). The author is credited on every product.",
     "Изглед": "View",
     "Снимка": "Photo",
+    "Автор": "Author",
+    "Снимка от автора на модела — реален принт": "Photo by the model's author — a real print",
     "Върти с мишката или пръста · приближавай с колелцето": "Drag to rotate · scroll to zoom",
     "Материал": "Material",
     "задръж мишката върху материала за повече": "hover over a material for details",

@@ -612,6 +612,8 @@ body.locked { overflow: hidden; }
 .product[data-cat="plants"] { --cat: var(--t-mint); }
 .product[data-cat="pets"] { --cat: var(--t-tan); }
 .product-media, .pd-media { position: relative; display: block; aspect-ratio: 4 / 3; overflow: hidden; background: var(--cat, var(--bg-2)); border-bottom: 2px solid var(--ink); }
+/* студийните снимки са на тъмен фон — докато се заредят, фонът е същият */
+.product-media:has(img[src^="img/p/"]), .pd-media:has(#pd-img[src^="img/p/"]) { background: #0c0c0f; }
 .product-media img, .pd-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease; }
 .product:hover .product-media img { transform: scale(1.05); }
 .noimg img { visibility: hidden; }

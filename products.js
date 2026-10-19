@@ -573,6 +573,40 @@ window.SLOY_CATALOG = (() => {
       { name: 'Дъга', hex: 'conic-gradient(#ff5e5e,#ffb13b,#ffe45e,#5edc7a,#5eb5ff,#a05eff,#ff5e5e)', preview: '#a26bff', extra: 0.15, only: ['PLA Silk'] },
     ],
 
+    // Студийни снимки (img/p/<id>.webp, правят се с python tools/render_all.py от models/<id>.glb).
+    // Цветът тук е цветът на снимката и цветът, избран по подразбиране в каталога (ако е наличен на склад).
+    // Продукт без ред тук показва снимката от MakerWorld / Printables.
+    photoColors: {
+      'mag-insert': 'Черен', 'mlok-cover': 'Черен', 'molle-hook': 'Черен', 'molle-phone': 'Черен', 'picatinny-gopro': 'Черен',
+      'gopro-tpu': 'Черен', 'gopro-hat': 'Черен', 'gopro-tripod': 'Черен', 'prop-box': 'Оранжев', 'race-gate': 'Жълт',
+      'dji-mini-stand': 'Бял', 'avata-legs': 'Черен', 'pocket-mount': 'Черен', 'mimic-chest': 'Оранжев', 'big-die': 'Червен',
+      'medieval-house': 'Маслинено зелен', 'organizer': 'Син', 'card-holder': 'Черен', 'chess-board': 'Бял', 'cube-atlas': 'Сив',
+      'tictactoe': 'Жълт', 'skeleton-shark': 'Бял', 'hammerhead': 'Сив', 'crystal-dragon': 'Син', 'snakey': 'Зелен', 'axolotl': 'Червен',
+      'octopus': 'Оранжев', 'robot': 'Син', 'morf-worm': 'Зелен', 'infinity-cube': 'Жълт', 'spiral-cone': 'Син', 'key-clicker': 'Бял',
+      'star-fidget': 'Оранжев', 'oloid': 'Червен', 'jumping-frog': 'Зелен', 'spider': 'Черен', 'web-fidget': 'Бял', 'nail-prank': 'Сив',
+      'mesh-bowl': 'Черен', 'rope-bowl': 'Оранжев', 'modern-vase': 'Прозрачно син', 'black-cat': 'Черен', 'cats-wall': 'Черен',
+      'ghost-pumpkin': 'Оранжев', 'bats': 'Черен', 'haunted-house': 'Сив', 'witch-shadows': 'Черен', 'snow-town': 'Прозрачен',
+      'orbital-tree': 'Зелен', 'xmas-ornaments': 'Прозрачно розов', 'snowflake-corner': 'Бял', 'dragon-statue': 'Маслинено зелен',
+      'labrador': 'Черен', 'sphinx': 'Маслинено зелен', 'david-bust': 'Черен', 'atlas': 'Маслинено зелен', 'thinker': 'Черен',
+      'two-souls': 'Черен', 'samurai-frog': 'Маслинено зелен', 'sleeping-fox': 'Черен', 'sleeping-otter': 'Маслинено зелен',
+      'steampunk-cat': 'Черен', 'pomeranian': 'Оранжев', 'sitting-ghost': 'Бял', 'pike': 'Маслинено зелен', 'mini-ghosts': 'Светещ зелен',
+      'peekaboo-ghost': 'Светещ зелен', 'reading-ghost': 'Светещ зелен', 'ghost-dog': 'Светещ зелен', 'cat-ghost': 'Черен',
+      'ghost-pumpkins': 'Маслинено зелен', 'ghosts-in-love': 'Светещ зелен', 'heart-dragon': 'Черен', 'mini-turtle': 'Маслинено зелен',
+      'lazy-panda': 'Черен', 'hedgehog': 'Маслинено зелен', 'chubby-bear': 'Черен', 'mini-dragon': 'Маслинено зелен', 'sitting-kitten': 'Черен',
+      'race-car-mini': 'Черен', 'race-car-desk': 'Червен', 'race-lamp': 'Черен', 'angled-foregrip': 'Черен', 'mock-suppressor': 'Черен',
+      'sd-suitcase': 'Жълт', 'socom-suppressor': 'Черен', 'gbb-loader-adapter': 'Черен', 'hicapa-loader-adapter': 'Черен',
+      'krytac-ranger': 'Черен', 'ris-cover': 'Черен', 'mlok-twist-covers': 'Черен', 'mlok-handstop': 'Черен', 'mlok-molded-grip': 'Черен',
+      'mlok-honeycomb-stop': 'Черен', 'glock-mag-baseplate': 'Черен', 'glock-mag-feet': 'Черен', 'heart-stand': 'Червен',
+      'rose': 'Червен', 'tulip': 'Жълт', 'flexi-cat-heart': 'Червен', 'gift-card-box': 'Червен', 'plate-keychain': 'Бял',
+      'tumbler-keychain': 'Син', 'dragon-keychain': 'Зелен', 'flexi-rex-keychain': 'Оранжев', 'paw-keychain': 'Червен',
+      'carabiner': 'Черен', 'packet-organizer': 'Бял', 'shelf-for-shelf': 'Черен', 'cat-clip': 'Черен', 'cat-key-hook': 'Черен',
+      'keychain-display': 'Сив', 'battery-hive': 'Жълт', 'gridfinity': 'Черен', 'screwbox': 'Черен', 'cable-winder': 'Черен',
+      'monitor-shelf': 'Черен', 'under-drawer': 'Черен', 'headphone-clamp': 'Черен', 'pencil-organizer': 'Жълт', 'edc-tray': 'Сив',
+      'cable-tube': 'Черен', 'tablet-stand': 'Черен', 'shower-phone': 'Черен', 'car-phone': 'Черен', 'controller-holder': 'Черен',
+      'mushroom-shelves': 'Червен', 'cactus-pots': 'Зелен', 'frog-planter': 'Зелен', 'spiral-pot': 'Бял', 'germination': 'Черен',
+      'dog-tag': 'Черен', 'airtag-collar': 'Черен', 'treat-puzzle': 'Черен', 'cat-toy': 'Черен',
+    },
+
     products: [
       // ---------- Airsoft ----------
       { id: 'mag-insert', cat: 'airsoft', sub: 'mags', grams: 48, hours: 1.6, materials: ['PETG', 'TPU'],
