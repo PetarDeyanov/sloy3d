@@ -576,14 +576,14 @@ window.SLOY_CATALOG = (() => {
     // Студийни снимки (img/p/<id>.webp, правят се с python tools/render_all.py от models/<id>.glb).
     // Цветът тук е цветът на снимката и цветът, избран по подразбиране в каталога (ако е наличен на склад).
     // Продукт без ред тук показва снимката от MakerWorld / Printables.
-    // Продукти, при които 3D файлът е непълен или са много части без данни за сглобяване — главната снимка е на автора
-    // (показва сглобения продукт); студийната не се ползва. Цветът по подразбиране пак е от photoColors.
-    authorPhotos: ['deer-lantern', 'car-phone', 'race-car-desk', 'haunted-house', 'mimic-chest', 'rose', 'tulip'],
+    // Продукти, при които студийната снимка не става (напр. непълен 3D файл) — главната снимка е на автора.
+    // Сега няма такива: всички са снимани сглобени. Цветът по подразбиране пак е от photoColors.
+    authorPhotos: [],
     photoColors: {
       'bubble-vase': 'Червен', 'airsoft-grip': 'Черен',
       'mag-insert': 'Черен', 'mlok-cover': 'Черен', 'molle-hook': 'Черен', 'molle-phone': 'Черен', 'picatinny-gopro': 'Черен',
       'gopro-tpu': 'Черен', 'gopro-hat': 'Черен', 'gopro-tripod': 'Черен', 'prop-box': 'Оранжев', 'race-gate': 'Жълт',
-      'dji-mini-stand': 'Бял', 'avata-legs': 'Черен', 'pocket-mount': 'Черен', 'mimic-chest': 'Оранжев', 'big-die': 'Червен',
+      'dji-mini-stand': 'Бял', 'avata-legs': 'Черен', 'pocket-mount': 'Черен', 'mimic-chest': 'Оранжев', 'deer-lantern': 'Бял', 'big-die': 'Червен',
       'medieval-house': 'Маслинено зелен', 'organizer': 'Син', 'card-holder': 'Черен', 'chess-board': 'Бял', 'cube-atlas': 'Сив',
       'tictactoe': 'Жълт', 'skeleton-shark': 'Бял', 'hammerhead': 'Сив', 'crystal-dragon': 'Син', 'snakey': 'Зелен', 'axolotl': 'Червен',
       'octopus': 'Оранжев', 'robot': 'Син', 'morf-worm': 'Зелен', 'infinity-cube': 'Жълт', 'spiral-cone': 'Син', 'key-clicker': 'Бял',
