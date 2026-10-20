@@ -242,6 +242,10 @@ ul, ol { margin: 0; }
 .card-visual svg { width: 76px; height: 76px; transition: transform .3s; }
 .card:hover .card-visual svg { transform: rotate(-8deg) scale(1.08); }
 .card-visual img { width: 100%; height: 100%; object-fit: cover; }
+/* студийни снимки (tools/cards.py) — тъмен фон, докато се заредят; леко приближаване при посочване */
+.card-photo { background: #0c0c0f !important; overflow: hidden; }
+.card-photo img { transition: transform .45s ease; }
+.card:hover .card-photo img { transform: scale(1.05); }
 .card-body { display: flex; flex-direction: column; flex: 1; padding: 22px; }
 .card h3 { margin-bottom: 8px; font-size: 1.25rem; }
 .card-body > p { color: var(--ink-2); }
