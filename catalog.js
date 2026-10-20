@@ -9,8 +9,10 @@
   const byId = id => products.find(p => p.id === id);
   // снимка: студийната (img/p/<id>.webp, еднаква за всички), а ако я няма — тази на автора от MakerWorld / Printables
   const photoColors = window.SLOY_CATALOG.photoColors || {};
-  const photoOf = p => (photoColors[p.id] ? `img/p/${p.id}.webp` : p.mw.img);
-  const imgHTML = (p, alt) => `<img src="${photoOf(p)}" alt="${esc(alt)}" loading="lazy" referrerpolicy="no-referrer"${photoColors[p.id] ? ` data-fallback="${esc(p.mw.img)}"` : ''}>`;
+  const authorPhotos = new Set(window.SLOY_CATALOG.authorPhotos || []);
+  const studio = p => !!photoColors[p.id] && !authorPhotos.has(p.id);   // има ли студийна снимка
+  const photoOf = p => (studio(p) ? `img/p/${p.id}.webp` : p.mw.img);
+  const imgHTML = (p, alt) => `<img src="${photoOf(p)}" alt="${esc(alt)}" loading="lazy" referrerpolicy="no-referrer"${studio(p) ? ` data-fallback="${esc(p.mw.img)}"` : ''}>`;
   // липсваща студийна снимка → снимката на автора
   document.addEventListener('error', e => {
     const img = e.target;
@@ -252,10 +254,10 @@
     $$('#pd-views button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
   };
   const showViews = has3D => {
-    const studio = !!photoColors[pd.product.id];
+    const own = studio(pd.product);
     $('#pd-views [data-view="3d"]').hidden = !has3D;
-    $('#pd-views [data-view="author"]').hidden = !studio;
-    $('#pd-views').hidden = !has3D && !studio;
+    $('#pd-views [data-view="author"]').hidden = !own;
+    $('#pd-views').hidden = !has3D && !own;
   };
   const paint3D = () => {
     if (!viewer) return;
@@ -360,7 +362,7 @@
     const img = $('#pd-img');
     img.parentElement.classList.remove('noimg');
     img.src = photoOf(p);
-    if (photoColors[p.id]) img.dataset.fallback = p.mw.img;
+    if (studio(p)) img.dataset.fallback = p.mw.img;
     img.alt = pick(p, 'name');
     $('#pd-cat').textContent = t(categories[p.cat]) + (subLabel(p) ? ' · ' + t(subLabel(p)) : '');
     $('#pd-title').textContent = pick(p, 'name');

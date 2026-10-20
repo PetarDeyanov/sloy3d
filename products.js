@@ -576,6 +576,9 @@ window.SLOY_CATALOG = (() => {
     // Студийни снимки (img/p/<id>.webp, правят се с python tools/render_all.py от models/<id>.glb).
     // Цветът тук е цветът на снимката и цветът, избран по подразбиране в каталога (ако е наличен на склад).
     // Продукт без ред тук показва снимката от MakerWorld / Printables.
+    // Продукти, при които 3D файлът е непълен или са много части без данни за сглобяване — главната снимка е на автора
+    // (показва сглобения продукт); студийната не се ползва. Цветът по подразбиране пак е от photoColors.
+    authorPhotos: ['deer-lantern', 'car-phone', 'race-car-desk', 'haunted-house', 'mimic-chest', 'rose', 'tulip'],
     photoColors: {
       'bubble-vase': 'Червен', 'airsoft-grip': 'Черен',
       'mag-insert': 'Черен', 'mlok-cover': 'Черен', 'molle-hook': 'Черен', 'molle-phone': 'Черен', 'picatinny-gopro': 'Черен',

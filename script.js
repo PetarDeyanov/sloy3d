@@ -72,7 +72,8 @@
   // Празникът се показва seasonLeadDays дни преди датата си и изчезва след нея.
   // За преглед преди сезона: добави ?sezon=christmas към адреса.
   const catalog = window.SLOY_CATALOG;
-  const photos = catalog?.photoColors || {};   // продукти със студийна снимка (img/p/<id>.webp)
+  const authorPhotos = new Set(catalog?.authorPhotos || []);
+  const photos = Object.fromEntries(Object.entries(catalog?.photoColors || {}).filter(([id]) => !authorPhotos.has(id)));   // със студийна снимка
   const findSeason = () => {
     if (!catalog) return null;
     const { seasons, seasonLeadDays = 30, orderDaysBefore = 6 } = catalog;
