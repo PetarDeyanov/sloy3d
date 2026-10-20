@@ -57,7 +57,7 @@ window.SLOY_I18N = (() => {
     "материали": "materials",
     "Еконт": "Econt",
     "доставка в цялата страна": "delivery across Bulgaria",
-    "3D принтер печата шахматен топ слой по слой": "A 3D printer printing a chess rook layer by layer",
+    "3D принтер печата логото на SLOY слой по слой": "A 3D printer printing the SLOY logo layer by layer",
     "ГОТОВО": "DONE",
     "ПЕЧАТА": "PRINTING",
     "СЛОЙ": "LAYER",

@@ -335,7 +335,7 @@
     });
   }
 
-  // ---------- Анимация: принтер печата топ слой по слой (само на началната страница) ----------
+  // ---------- Анимация: принтер печата логото (трите цветни слоя) слой по слой — само на началната страница ----------
   const svg = $('.printer-svg');
   if (svg) initPrinter(svg);
 
@@ -350,19 +350,14 @@
     const rZ = $('#r-z');
     const rTemp = $('#r-temp');
 
-    const LAYERS = 124, LH = 2, BASE = 310, TOP = BASE - LAYERS * LH, OY = 50;
-    const BUILD = 9000, HOLD = 2600, FADE = 700, CYCLE = BUILD + HOLD + FADE;
+    const LH = 2, BASE = 310, TOP = 136, LAYERS = (BASE - TOP) / LH;
+    const BUILD = 8000, HOLD = 2600, FADE = 700, CYCLE = BUILD + HOLD + FADE;
     const PARK = { x: 206, y: 44 };
+    if ($('#r-total')) $('#r-total').textContent = LAYERS;
 
-    // половин ширина на топа на дадена височина (координати на модела)
-    const half = y => {
-      if (y >= 240) return 70;
-      if (y >= 222) return 60;
-      if (y >= 92) return 36 + (y - 92) / 130 * 10;
-      if (y >= 78) return 50;
-      return 45;
-    };
-    const headX = (t, top) => 120 + Math.sin(t / 95) * half(top - OY) * 0.94;
+    // половин ширина на логото на дадена височина: долният (син) слой е най-широк, горният (лайм) — най-тесен
+    const half = y => (y >= 252 ? 98 : y >= 194 ? 67 : 36);
+    const headX = (t, top) => 120 + Math.sin(t / 95) * half(top) * 0.94;
     const ease = p => 1 - Math.pow(1 - p, 3);
 
     const render = t => {
@@ -397,20 +392,11 @@
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
       render(BUILD + 1000);
     } else {
-      // всеки нов принт е с различен цвят филамент
-      const FILAMENTS = ['#ff5ca8', '#3d7bff', '#b8e62a', '#ffc93c', '#2fd3a6', '#8b5cf6'];
-      const filament = $('#filament');
       let start = null;
       let visible = true;
-      let printNo = -1;
       new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; }).observe(svg);
       const tick = now => {
         if (start === null) start = now;
-        const n = Math.floor((now - start) / CYCLE);
-        if (n !== printNo) {
-          printNo = n;
-          filament.setAttribute('fill', FILAMENTS[n % FILAMENTS.length]);
-        }
         if (visible) render((now - start) % CYCLE);
         requestAnimationFrame(tick);
       };
