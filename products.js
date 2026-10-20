@@ -579,6 +579,9 @@ window.SLOY_CATALOG = (() => {
     // Продукти, при които студийната снимка не става (напр. непълен 3D файл) — главната снимка е на автора.
     // Сега няма такива: всички са снимани сглобени. Цветът по подразбиране пак е от photoColors.
     authorPhotos: [],
+    // Сглобени 3D модели за прегледа: models/asm/<id>.glb (правят се с python tools/render_all.py --glb, списъкът се попълва сам).
+    // models/<id>.glb остава плочата за печат — от него SLOY Print прави проекта за Bambu Studio.
+    asm3D: ['airtag-collar', 'battery-hive', 'cable-tube', 'cable-winder', 'car-phone', 'cat-toy', 'david-bust', 'deer-lantern', 'ghost-pumpkin', 'gift-card-box', 'haunted-house', 'key-clicker', 'keychain-display', 'mimic-chest', 'monitor-shelf', 'nail-prank', 'picatinny-gopro', 'prop-box', 'race-car-desk', 'race-gate', 'race-lamp', 'rose', 'spiral-pot', 'tablet-stand', 'tictactoe', 'treat-puzzle', 'tulip'],
     photoColors: {
       'bubble-vase': 'Червен', 'airsoft-grip': 'Черен',
       'mag-insert': 'Черен', 'mlok-cover': 'Черен', 'molle-hook': 'Черен', 'molle-phone': 'Черен', 'picatinny-gopro': 'Черен',

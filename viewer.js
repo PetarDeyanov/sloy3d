@@ -46,13 +46,20 @@ export async function parseGLB(buffer) {
     if (!o.isMesh) return;
     const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
     g.applyMatrix4(o.matrixWorld);
-    parts.push(g.attributes.position.array);
+    // сглобените модели (models/asm): материал "fix-#rrggbb" = част с постоянен цвят (гуми, стъбло…), другото е в избрания цвят
+    const fix = /^fix-(#[0-9a-f]{6})/i.exec(o.material?.name || '');
+    parts.push({ array: g.attributes.position.array, color: fix ? fix[1] : null });
     g.dispose();
   });
   if (!parts.length) throw new Error('Празен GLB.');
-  const positions = new Float32Array(parts.reduce((s, a) => s + a.length, 0));
+  const positions = new Float32Array(parts.reduce((s, p) => s + p.array.length, 0));
+  const groups = [];
   let off = 0;
-  for (const a of parts) { positions.set(a, off); off += a.length; }
+  for (const p of parts) {
+    positions.set(p.array, off);
+    groups.push({ start: off / 3, count: p.array.length / 3, color: p.color });
+    off += p.array.length;
+  }
   // glTF е в метри (файловете от MakerWorld), а прегледът и цената — в милиметри
   let ext = 0;
   for (let k = 0; k < 3; k++) {
@@ -75,7 +82,7 @@ export async function parseGLB(buffer) {
       positions[i + 2] = y;
     }
   }
-  return { positions, ...measure(positions) };
+  return { positions, groups: groups.some(g => g.color) ? groups : null, ...measure(positions) };
 }
 
 export function measure(p) {
@@ -132,6 +139,7 @@ export function createViewer(container) {
   scene.add(rim);
 
   const material = new THREE.MeshStandardMaterial({ color: 0xff6b1a, roughness: 0.55, metalness: 0 });
+  let fixed = [];   // частите с постоянен цвят (сглобените модели)
   let glow = false;
   let mesh = null;
   let grid = null;
@@ -157,17 +165,30 @@ export function createViewer(container) {
     scene.add(grid);
   };
 
-  const load = positions => {
+  // groups: [{ start, count, color }] — върхове с постоянен цвят; без тях целият модел е в избрания цвят
+  const load = (positions, groups = null) => {
     if (mesh) { scene.remove(mesh); mesh.geometry.dispose(); }
+    fixed.forEach(m => m.dispose());
+    fixed = [];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions.slice(), 3));
+    if (groups) {
+      const index = new Map();
+      for (const g of groups) {
+        if (g.color && !index.has(g.color)) {
+          fixed.push(new THREE.MeshStandardMaterial({ color: g.color, roughness: material.roughness, metalness: 0 }));
+          index.set(g.color, fixed.length);
+        }
+        geo.addGroup(g.start, g.count, g.color ? index.get(g.color) : 0);
+      }
+    }
     geo.rotateX(-Math.PI / 2);          // STL е със Z нагоре, three.js — с Y нагоре
     geo.computeVertexNormals();
     geo.computeBoundingBox();
     const bb = geo.boundingBox;
     geo.translate(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2);
     bb.getSize(baseSize);
-    mesh = new THREE.Mesh(geo, material);
+    mesh = new THREE.Mesh(geo, fixed.length ? [material, ...fixed] : material);
     mesh.scale.setScalar(scale);
     scene.add(mesh);
     controls.autoRotate = !reduceMotion;
@@ -211,6 +232,7 @@ export function createViewer(container) {
       glow = g;
       material.emissive.set(glow ? material.color : 0x000000);
       material.needsUpdate = true;
+      fixed.forEach(m => { m.roughness = roughness; m.metalness = metalness; });
     },
     setScale: s => { scale = s; if (mesh) { mesh.scale.setScalar(s); fit(); } },
     reset: () => { controls.autoRotate = !reduceMotion; fit(); },
@@ -220,6 +242,7 @@ export function createViewer(container) {
       io.disconnect();
       if (mesh) mesh.geometry.dispose();
       material.dispose();
+      fixed.forEach(m => m.dispose());
       renderer.dispose();
       renderer.domElement.remove();
     },

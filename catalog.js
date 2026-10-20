@@ -10,6 +10,7 @@
   // снимка: студийната (img/p/<id>.webp, еднаква за всички), а ако я няма — тази на автора от MakerWorld / Printables
   const photoColors = window.SLOY_CATALOG.photoColors || {};
   const authorPhotos = new Set(window.SLOY_CATALOG.authorPhotos || []);
+  const asm3D = new Set(window.SLOY_CATALOG.asm3D || []);   // сглобен 3D модел в models/asm/
   const studio = p => !!photoColors[p.id] && !authorPhotos.has(p.id);   // има ли студийна снимка
   const photoOf = p => (studio(p) ? `img/p/${p.id}.webp` : p.mw.img);
   const imgHTML = (p, alt) => `<img src="${photoOf(p)}" alt="${esc(alt)}" loading="lazy" referrerpolicy="no-referrer"${studio(p) ? ` data-fallback="${esc(p.mw.img)}"` : ''}>`;
@@ -273,9 +274,9 @@
       setView('photo');
     }
     try {
-      // 3D прегледът от MakerWorld (.glb), а ако го няма — собствен STL
+      // сглобеният модел (models/asm), иначе 3D прегледът от MakerWorld (.glb), а ако го няма — собствен STL
       let kind = 'glb';
-      let res = await fetch(`models/${name}.glb`);
+      let res = await fetch(name === p.id && asm3D.has(p.id) ? `models/asm/${name}.glb` : `models/${name}.glb`);
       if (!res.ok) { kind = 'stl'; res = await fetch(`models/${name}.stl`); }
       if (!res.ok || token !== modelToken) return;
       const buffer = await res.arrayBuffer();
@@ -285,7 +286,7 @@
       if (token !== modelToken) return;
       if ($('#pd-views [data-view="3d"]').hidden) showViews(true);
       viewer ||= viewerModule.createViewer($('#pd-3d'));
-      viewer.load(model.positions);
+      viewer.load(model.positions, model.groups);
       paint3D();
     } catch { /* няма 3D файл или браузърът не поддържа WebGL — остава снимката */ }
   };
