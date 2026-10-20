@@ -577,6 +577,7 @@ window.SLOY_CATALOG = (() => {
     // Цветът тук е цветът на снимката и цветът, избран по подразбиране в каталога (ако е наличен на склад).
     // Продукт без ред тук показва снимката от MakerWorld / Printables.
     photoColors: {
+      'bubble-vase': 'Червен', 'airsoft-grip': 'Черен',
       'mag-insert': 'Черен', 'mlok-cover': 'Черен', 'molle-hook': 'Черен', 'molle-phone': 'Черен', 'picatinny-gopro': 'Черен',
       'gopro-tpu': 'Черен', 'gopro-hat': 'Черен', 'gopro-tripod': 'Черен', 'prop-box': 'Оранжев', 'race-gate': 'Жълт',
       'dji-mini-stand': 'Бял', 'avata-legs': 'Черен', 'pocket-mount': 'Черен', 'mimic-chest': 'Оранжев', 'big-die': 'Червен',
@@ -1042,12 +1043,12 @@ window.SLOY_CATALOG = (() => {
         mw: mw(3260507, 'MOXI | 3D Printing', 'CC0', 'Formula Racing LED Desk Lamp', 'US6706ca86e15010/design/8cb86ec18e5fc82a.png') },
       { id: 'airsoft-grip', cat: 'airsoft', sub: 'gun', grams: 58, hours: 2.2, materials: SOLID,
         sizes: [
-          size('70 мм', [null, null, 70], 48, 1.8),
-          size('75 мм', [null, null, 75], 51, 1.9),
+          size('70 мм', [null, null, 70], 48, 1.8, { model: 'airsoft-grip-70' }),
+          size('75 мм', [null, null, 75], 51, 1.9, { model: 'airsoft-grip-75' }),
           size('85 мм', [null, null, 85], 58, 2.2, { def: true }),
-          size('90 мм', [null, null, 90], 61, 2.3),
-          size('95 мм', [null, null, 95], 65, 2.5),
-          size('100 мм', [null, null, 100], 68, 2.6)], fits: ['m4'], options: [AEG_BRAND],
+          size('90 мм', [null, null, 90], 61, 2.3, { model: 'airsoft-grip-90' }),
+          size('95 мм', [null, null, 95], 65, 2.5, { model: 'airsoft-grip-95' }),
+          size('100 мм', [null, null, 100], 68, 2.6, { model: 'airsoft-grip-100' })], fits: ['m4'], options: [AEG_BRAND],
         name: 'Пистолетен грип за airsoft (AEG)', desc: 'Грип за M4/AR15 airsoft реплики (AEG, гиърбокс V2) в 6 размера — избери дължината по дланта си. Монтира се с винт 5×30 мм.',
         en: { name: "Airsoft pistol grip (AEG)", desc: "A grip for M4/AR15-style airsoft replicas (AEG, V2 gearbox) in 6 sizes — pick the length that fits your hand. Mounts with a 5×30 mm bolt." },
         mw: mw(421285, 'KP design', 'BY-SA', 'Airsoft grip', 'DSM00000000421285/design/2024-04-09_gsosvmeuymt1.jpeg') },
