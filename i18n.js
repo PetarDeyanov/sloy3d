@@ -141,7 +141,7 @@ window.SLOY_I18N = (() => {
     "Може ли фигура на известен герой или лого?": "Can you print a famous character or a logo?",
     "Принтираме само модели, които имаме право да използваме — твои собствени или с лиценз, който позволява продажба. Ако даден модел не може, ще ти предложим алтернатива.": "We only print models we have the right to use — your own, or ones licensed for sale. If a model isn't allowed, we'll suggest an alternative.",
     "Как плащам?": "How do I pay?",
-    "С наложен платеж при доставка или с банков превод. При по-големи поръчки искаме капаро преди печата.": "Cash on delivery or bank transfer. For larger orders we ask for a deposit before printing.",
+    "С наложен платеж при доставка или с карта (вкл. Apple Pay и Google Pay). При по-големи поръчки искаме капаро преди печата.": "Cash on delivery or by card (including Apple Pay and Google Pay). For larger orders we ask for a deposit before printing.",
     "3D печат по поръчка. Слой по слой.": "Custom 3D printing. Layer by layer.",
     "Последен ден за поръчка:": "Last day to order:",
     "Виж колекцията": "See the collection",
