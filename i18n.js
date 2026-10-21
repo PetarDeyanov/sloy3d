@@ -569,11 +569,11 @@ window.SLOY_I18N = (() => {
 
     // ---------- За фирми ----------
     "3D печат за фирми — SLOY 3D | Лога, серии, прототипи": "3D printing for business — SLOY 3D | Logos, batches, prototypes",
-    "3D печат за бизнеса: рекламни продукти с лого, серии, прототипи и резервни части. Оферта до 24 часа, фактура и отстъпки за количество.": "3D printing for business: branded promotional items, batches, prototypes and spare parts. Quote within 24 hours, invoices and volume discounts.",
+    "3D печат за бизнеса: рекламни продукти с лого, серии, прототипи и резервни части. Оферта до 24 часа и отстъпки за количество.": "3D printing for business: branded promotional items, batches, prototypes and spare parts. Quote within 24 hours and volume discounts.",
     "3D печат за фирми — SLOY 3D": "3D printing for business — SLOY 3D",
     "За фирми": "For business",
     "3D печат за бизнеса": "3D printing for business",
-    "Рекламни продукти с лого, серии, прототипи и резервни части — от 10 до стотици бройки, с фактура и по-добра цена на брой.": "Branded promotional items, batches, prototypes and spare parts — from 10 to hundreds of pieces, with an invoice and a better price per piece.",
+    "Рекламни продукти с лого, серии, прототипи и резервни части — от 10 до стотици бройки, с по-добра цена на брой.": "Branded promotional items, batches, prototypes and spare parts — from 10 to hundreds of pieces, with a better price per piece.",
     "Рекламни продукти с лого": "Branded promotional items",
     "Ключодържатели, поставки за телефон, табели и подаръци за клиенти и служители — с лого в цветовете на фирмата.": "Keychains, phone stands, signs and gifts for clients and staff — with your logo in your brand colours.",
     "Серии и малко производство": "Batches and small-scale production",
@@ -602,7 +602,7 @@ window.SLOY_I18N = (() => {
     "Запитване": "Enquiry",
     "Пращате лого, файл, чертеж, снимка или просто описание и количество.": "You send a logo, file, drawing, photo or just a description and quantity.",
     "Оферта": "Quote",
-    "Цена на брой, материал, цветове и срок — до 24 часа, с фактура.": "Price per piece, material, colours and lead time — within 24 hours, with an invoice.",
+    "Цена на брой, материал, цветове и срок — до 24 часа.": "Price per piece, material, colours and lead time — within 24 hours.",
     "Мостра": "Sample",
     "При серии печатаме първо една мостра за одобрение.": "For batches we first print one sample for approval.",
     "Производство": "Production",
