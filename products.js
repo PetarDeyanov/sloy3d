@@ -77,25 +77,35 @@ window.SLOY_CATALOG = (() => {
     },
 
     // Празнични колекции — показват се сами seasonLeadDays дни преди празника (date, ММ-ДД)
-    // и изчезват след него. Последният ден за поръчка е orderDaysBefore дни преди празника.
+    // и изчезват след последния ден за поръчка (orderDaysBefore дни преди празника).
+    // from/to (ММ-ДД) = изричен период вместо това (напр. Коледа и Нова година: 20 ноември – 2 януари).
+    // Няколко сезона може да са активни едновременно; сезон без нито един продукт не се показва.
+    // Таймерът брои до 00:00 на date (или до countTo, напр. Нова година — до 01-01), а в самия ден показва greeting.
     // Продукт със seasons се вижда само в сезона, освен ако има always: true.
     // en: { ... } = английски текст (езикът се сменя с бутона БГ | EN).
     seasonLeadDays: 30,
     orderDaysBefore: 6,
     seasons: {
       halloween: {
-        label: 'Хелоуин', icon: '🎃', date: '10-31',
+        label: 'Хелоуин', icon: '🎃', date: '10-31', greeting: 'Честит Хелоуин!',
         title: 'Страшно хубави принтове за Хелоуин',
         text: 'Паяци, скелети, прилепи и светещи фенери за къщата. Поръчай навреме — печатът и доставката отнемат няколко дни.',
         accent: '#ff7a1a', accent2: '#a855f7',
-        en: { label: "Halloween", title: "Spooky-good prints for Halloween", text: "Spiders, skeletons, bats and glowing lanterns for the house. Order in time — printing and delivery take a few days." },
+        en: { label: "Halloween", greeting: "Happy Halloween!", title: "Spooky-good prints for Halloween", text: "Spiders, skeletons, bats and glowing lanterns for the house. Order in time — printing and delivery take a few days." },
       },
       christmas: {
-        label: 'Коледа', icon: '🎄', date: '12-25',
+        label: 'Коледа', icon: '🎄', date: '12-25', from: '11-20', to: '01-02', greeting: 'Весела Коледа!',
         title: 'Коледа, принтирана с любов',
         text: 'Играчки за елхата, фенери, снежинки и кутийки за подаръци — в цветове по избор.',
         accent: '#ef4444', accent2: '#22c55e',
-        en: { label: "Christmas", title: "Christmas, printed with love", text: "Tree ornaments, lanterns, snowflakes and gift boxes — in the colours you choose." },
+        en: { label: "Christmas", greeting: "Merry Christmas!", title: "Christmas, printed with love", text: "Tree ornaments, lanterns, snowflakes and gift boxes — in the colours you choose." },
+      },
+      newyear: {
+        label: 'Нова година', icon: '🎆', date: '12-31', countTo: '01-01', from: '11-20', to: '01-02', greeting: 'Честита Нова година!',
+        title: 'Посрещни Новата година с нещо ново',
+        text: 'Украса за празничната маса, подаръци за полунощ и изненади за гостите — в цветовете, които избереш.',
+        accent: '#f5b301', accent2: '#7c3aed',
+        en: { label: "New Year", greeting: "Happy New Year!", title: "Ring in the New Year with something new", text: "Decorations for the festive table, midnight gifts and surprises for your guests — in the colours you choose." },
       },
       valentine: {
         label: 'Свети Валентин', icon: '❤', date: '02-14',

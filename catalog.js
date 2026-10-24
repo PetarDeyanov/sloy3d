@@ -62,10 +62,10 @@
     'BY': ['CC BY 4.0', 'https://creativecommons.org/licenses/by/4.0/'],
     'BY-SA': ['CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0/'],
   };
-  const season = window.SLOY_SEASON || null;   // текущият празник (изчислява се в script.js)
-  const activeSeason = season?.id || null;
+  const activeSeasons = window.SLOY_SEASONS || [];   // активните празници (изчисляват се в script.js), по дата
+  const seasonById = Object.fromEntries(activeSeasons.map(x => [x.id, x]));
   // Празничните продукти се виждат само в сезона си, освен ако са always
-  const isAvailable = p => !p.seasons || p.always || p.seasons.includes(activeSeason);
+  const isAvailable = p => !p.seasons || p.always || p.seasons.some(id => seasonById[id]);
   const catOrder = Object.keys(categories);
   const subcats = window.SLOY_CATALOG.subcategories || {};
   const subIdx = p => Object.keys(subcats[p.cat] || {}).indexOf(p.sub);
@@ -125,7 +125,7 @@
 
   const renderFilters = () => {
     const keys = [['all', t('Всички'), shown.length]];
-    if (season) keys.push([season.id, `${season.icon} ${pick(season, 'label')}`, shown.filter(p => p.seasons?.includes(season.id)).length, true]);
+    activeSeasons.forEach(x => keys.push([x.id, `${x.icon} ${pick(x, 'label')}`, shown.filter(p => p.seasons?.includes(x.id)).length, true]));
     Object.entries(categories).forEach(([k, v]) => {
       const n = shown.filter(p => p.cat === k).length;
       if (n) keys.push([k, t(v), n]);
@@ -166,11 +166,14 @@
       head.style.setProperty('--season-b', s.accent2);
       $('#cat-eyebrow').textContent = `${s.icon} ${pick(s, 'label')}`;
       $('#cat-title').textContent = pick(s, 'title');
-      $('#cat-lead').textContent = `${pick(s, 'text')} ${t('Последен ден за поръчка: {date}.', { date: dayMonth(season.orderBy) })}`;
+      const by = seasonById[currentFilter]?.orderBy;   // срокът — само ако още не е минал
+      $('#cat-lead').textContent = by && by >= new Date(new Date().toDateString()) ? `${pick(s, 'text')} ${t('Последен ден за поръчка: {date}.', { date: dayMonth(by) })}` : pick(s, 'text');
+      window.SLOY_COUNTDOWN?.($('#cat-countdown'), seasonById[currentFilter]);
     } else {
       $('#cat-eyebrow').textContent = headDefaults.eyebrow;
       $('#cat-title').innerHTML = headDefaults.title;
       $('#cat-lead').textContent = headDefaults.lead;
+      window.SLOY_COUNTDOWN?.($('#cat-countdown'), null);
     }
   };
 
@@ -194,7 +197,7 @@
   const setFilter = (f, origin) => {
     const [path, fitKey] = String(f || '').split(':');
     const [cat, subKey] = path.split('/');
-    currentFilter = categories[cat] || (cat && cat === activeSeason) ? cat : 'all';
+    currentFilter = categories[cat] || (cat && seasonById[cat]) ? cat : 'all';
     currentSub = subKey && subcats[currentFilter]?.[subKey] ? subKey : null;
     currentFit = fitKey && platforms[fitKey] && shown.some(p => p.cat === currentFilter && p.fits) ? fitKey : null;
     renderFilters();

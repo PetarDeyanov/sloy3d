@@ -71,44 +71,84 @@
   // ---------- Празници ----------
   // Празникът се показва seasonLeadDays дни преди датата си и изчезва след последния ден за поръчка
   // (orderDaysBefore дни преди него) — иначе банерът показва изтекъл срок, а поръчката не би стигнала навреме.
+  // Сезон с from/to (ММ-ДД) се показва точно в този период. Може да са активни няколко сезона наведнъж.
   // За преглед преди сезона: добави ?sezon=christmas към адреса.
   const catalog = window.SLOY_CATALOG;
   const authorPhotos = new Set(catalog?.authorPhotos || []);
   const photos = Object.fromEntries(Object.entries(catalog?.photoColors || {}).filter(([id]) => !authorPhotos.has(id)));   // със студийна снимка
-  const findSeason = () => {
-    if (!catalog) return null;
+  const DAY = 86400000;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const findSeasons = () => {
+    if (!catalog) return [];
     const { seasons, seasonLeadDays = 30, orderDaysBefore = 6 } = catalog;
     const forced = new URLSearchParams(location.search).get('sezon');
-    const DAY = 86400000;
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const md = (str, y) => { const [m, d] = str.split('-').map(Number); return new Date(y, m - 1, d); };
     const make = (id, date) => ({ id, ...seasons[id], day: date, orderBy: new Date(date.getTime() - orderDaysBefore * DAY) });
-    const dateIn = (id, y) => { const [m, d] = seasons[id].date.split('-').map(Number); return new Date(y, m - 1, d); };
     if (seasons[forced]) {
-      const date = dateIn(forced, today.getFullYear());
-      return make(forced, date < today ? dateIn(forced, today.getFullYear() + 1) : date);
+      const date = md(seasons[forced].date, today.getFullYear());
+      return [make(forced, date < today ? md(seasons[forced].date, today.getFullYear() + 1) : date)];
     }
+    const out = [];
     for (const id of Object.keys(seasons)) {
-      for (const y of [today.getFullYear(), today.getFullYear() + 1]) {
-        const date = dateIn(id, y);
-        const from = new Date(date.getTime() - seasonLeadDays * DAY);
-        const last = new Date(date.getTime() - orderDaysBefore * DAY);
-        if (today >= from && today <= last) return make(id, date);
+      const x = seasons[id];
+      for (const y of [today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1]) {
+        const date = md(x.date, y);
+        let from, to;
+        if (x.from && x.to) {   // изричен период около празника (to може да е в следващата година)
+          from = md(x.from, y); if (from > date) from = md(x.from, y - 1);
+          to = md(x.to, y); if (to < date) to = md(x.to, y + 1);
+        } else {
+          from = new Date(date.getTime() - seasonLeadDays * DAY);
+          to = new Date(date.getTime() - orderDaysBefore * DAY);
+        }
+        if (today >= from && today <= to) { out.push(make(id, date)); break; }
       }
     }
-    return null;
+    // само сезони с продукти; подредени по дата на празника
+    return out.filter(x => catalog.products.some(p => p.seasons?.includes(x.id))).sort((a, b) => a.day - b.day);
   };
-  const season = findSeason();
+  const activeSeasons = findSeasons();
+  // банерът: първият празник, за който още може да се поръча навреме (иначе първият активен)
+  const season = activeSeasons.find(x => x.orderBy >= today) || activeSeasons[0] || null;
+  window.SLOY_SEASONS = activeSeasons;
   window.SLOY_SEASON = season;
 
-  if (season) {
+  // Таймер до самия празник: до 00:00 на деня (countTo — друг ден, напр. Нова година до 1 януари).
+  // В самия ден показва поздрава (greeting), след това се скрива.
+  const countdownTimers = new WeakMap();
+  window.SLOY_COUNTDOWN = (el, x) => {
+    if (!el) return;
+    clearInterval(countdownTimers.get(el));
+    if (!x) { el.hidden = true; return; }
+    let target = x.day;
+    if (x.countTo) {
+      const [m, d] = x.countTo.split('-').map(Number);
+      target = new Date(x.day.getFullYear(), m - 1, d);
+      if (target < x.day) target = new Date(x.day.getFullYear() + 1, m - 1, d);
+    }
+    const tick = () => {
+      const ms = target - Date.now();
+      if (ms <= -DAY) { el.hidden = true; clearInterval(countdownTimers.get(el)); return; }
+      el.hidden = false;
+      if (ms <= 0) { el.innerHTML = `<span class="countdown-greet">${x.icon} ${pick(x, 'greeting') || ''}</span>`; return; }
+      const sec = Math.floor(ms / 1000);
+      const units = [[Math.floor(sec / 86400), t('дни')], [Math.floor(sec / 3600) % 24, t('часа')], [Math.floor(sec / 60) % 60, t('мин')], [sec % 60, t('сек')]];
+      el.innerHTML = `<span class="countdown-label">${t('До {holiday} остават', { holiday: pick(x, 'label') })}</span>`
+        + units.map(([n, l]) => `<span class="countdown-unit"><b>${String(n).padStart(2, '0')}</b><small>${l}</small></span>`).join('');
+    };
+    tick();
+    countdownTimers.set(el, setInterval(tick, 1000));
+  };
+
+  [...activeSeasons].reverse().forEach(x => {
     const link = document.createElement('a');
     link.className = 'nav-season';
-    link.href = `katalog.html#${season.id}`;
-    link.style.setProperty('--season-a', season.accent);
-    link.textContent = `${season.icon} ${pick(season, 'label')}`;
+    link.href = `katalog.html#${x.id}`;
+    link.style.setProperty('--season-a', x.accent);
+    link.textContent = `${x.icon} ${pick(x, 'label')}`;
     nav.prepend(link);
-  }
+  });
 
   // Банер на началната страница
   const banner = $('#season-banner');
@@ -122,7 +162,8 @@
           <p class="eyebrow">${season.icon} ${pick(season, 'label')}</p>
           <h2>${pick(season, 'title')}</h2>
           <p class="section-lead">${pick(season, 'text')}</p>
-          <p class="season-deadline">${t('Последен ден за поръчка:')} <strong>${dayMonth(season.orderBy)}</strong></p>
+          ${season.orderBy >= today ? `<p class="season-deadline">${t('Последен ден за поръчка:')} <strong>${dayMonth(season.orderBy)}</strong></p>` : ''}
+          <div class="countdown" role="timer" aria-live="off" hidden></div>
           <a class="btn btn-primary" href="katalog.html#${season.id}">${t('Виж колекцията')}</a>
         </div>
         <div class="season-picks">
@@ -130,6 +171,7 @@
         </div>
       </div>`;
     banner.hidden = false;
+    window.SLOY_COUNTDOWN(banner.querySelector('.countdown'), season);
   }
 
   // ---------- Въпрос от връзка (напр. vaprosi.html#pasva) — отваряме го ----------
