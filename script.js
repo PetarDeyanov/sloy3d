@@ -69,7 +69,8 @@
   onScroll();
 
   // ---------- Празници ----------
-  // Празникът се показва seasonLeadDays дни преди датата си и изчезва след нея.
+  // Празникът се показва seasonLeadDays дни преди датата си и изчезва след последния ден за поръчка
+  // (orderDaysBefore дни преди него) — иначе банерът показва изтекъл срок, а поръчката не би стигнала навреме.
   // За преглед преди сезона: добави ?sezon=christmas към адреса.
   const catalog = window.SLOY_CATALOG;
   const authorPhotos = new Set(catalog?.authorPhotos || []);
@@ -91,7 +92,8 @@
       for (const y of [today.getFullYear(), today.getFullYear() + 1]) {
         const date = dateIn(id, y);
         const from = new Date(date.getTime() - seasonLeadDays * DAY);
-        if (today >= from && today <= date) return make(id, date);
+        const last = new Date(date.getTime() - orderDaysBefore * DAY);
+        if (today >= from && today <= last) return make(id, date);
       }
     }
     return null;
