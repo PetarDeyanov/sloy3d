@@ -591,12 +591,12 @@ window.SLOY_CATALOG = (() => {
     authorPhotos: [],
     // Сглобени 3D модели за прегледа: models/asm/<id>.glb (правят се с python tools/render_all.py --glb, списъкът се попълва сам).
     // models/<id>.glb остава плочата за печат — от него SLOY Print прави проекта за Bambu Studio.
-    asm3D: ['airtag-collar', 'battery-hive', 'cable-tube', 'cable-winder', 'car-phone', 'cat-toy', 'david-bust', 'deer-lantern', 'ghost-pumpkin', 'gift-card-box', 'haunted-house', 'key-clicker', 'keychain-display', 'mimic-chest', 'monitor-shelf', 'nail-prank', 'picatinny-gopro', 'prop-box', 'race-car-desk', 'race-gate', 'race-lamp', 'rose', 'spiral-pot', 'tablet-stand', 'tictactoe', 'treat-puzzle', 'tulip'],
+    asm3D: ['airtag-collar', 'battery-hive', 'cable-tube', 'cable-winder', 'car-phone', 'cat-toy', 'david-bust', 'deer-lantern', 'fireworks-corner', 'ghost-pumpkin', 'gift-card-box', 'haunted-house', 'key-clicker', 'keychain-display', 'mimic-chest', 'monitor-shelf', 'nail-prank', 'party-crown', 'picatinny-gopro', 'prop-box', 'race-car-desk', 'race-gate', 'race-lamp', 'rose', 'spiral-pot', 'tablet-stand', 'tictactoe', 'treat-puzzle', 'tulip'],
     photoColors: {
       'bubble-vase': 'Червен', 'airsoft-grip': 'Черен',
       'mag-insert': 'Черен', 'mlok-cover': 'Черен', 'molle-hook': 'Черен', 'molle-phone': 'Черен', 'picatinny-gopro': 'Черен',
       'gopro-tpu': 'Черен', 'gopro-hat': 'Черен', 'gopro-tripod': 'Черен', 'prop-box': 'Оранжев', 'race-gate': 'Жълт',
-      'dji-mini-stand': 'Бял', 'avata-legs': 'Черен', 'pocket-mount': 'Черен', 'mimic-chest': 'Оранжев', 'deer-lantern': 'Бял', 'big-die': 'Червен',
+      'dji-mini-stand': 'Бял', 'avata-legs': 'Черен', 'pocket-mount': 'Черен', 'mimic-chest': 'Оранжев', 'deer-lantern': 'Бял', 'fireworks-corner': 'Червен', 'sparkler-holder': 'Черен', 'glass-name-tags': 'Бял', 'party-crown': 'Злато', 'big-die': 'Червен',
       'medieval-house': 'Маслинено зелен', 'organizer': 'Син', 'card-holder': 'Черен', 'chess-board': 'Бял', 'cube-atlas': 'Сив',
       'tictactoe': 'Жълт', 'skeleton-shark': 'Бял', 'hammerhead': 'Сив', 'crystal-dragon': 'Син', 'snakey': 'Зелен', 'axolotl': 'Червен',
       'octopus': 'Оранжев', 'robot': 'Син', 'morf-worm': 'Зелен', 'infinity-cube': 'Жълт', 'spiral-cone': 'Син', 'key-clicker': 'Бял',
@@ -907,6 +907,27 @@ window.SLOY_CATALOG = (() => {
         name: 'Снежинки за ъгъла на вратата', desc: 'Снежинки, които „валят“ от рамката на вратата.',
         en: { name: "Door-corner snowflakes", desc: "Snowflakes “falling” from the door frame." },
         mw: mw(65704, 'lindnjoe', 'BY-SA', 'Snowflake Door Corner', 'USde8b27c9a62b0d/design/2023-11-16_fb3e6168f2a55.jpg') },
+      // ---------- Нова година (грамове и часове от профила в MakerWorld) ----------
+      { id: 'fireworks-corner', cat: 'decor', sub: 'holiday', seasons: ['newyear'], grams: 140, hours: 4.5, maxColors: 3, materials: ['PLA', 'PLA Matte', 'PLA Silk'], assembly: { minutes: 4, items: { tape: 2 } },
+        dims: [250, 250, 16], approx: true,
+        name: 'Фойерверки за ъгъла на вратата', desc: 'Ракети, звезди и искри, които „избухват“ от рамката на вратата. Комплект: ляв и десен ъгъл.',
+        en: { name: "Door-corner fireworks", desc: "Rockets, stars and sparks “bursting” from the door frame. Set: left and right corner." },
+        mw: mw(1469858, 'jdicerchio', 'BY-SA', 'Fireworks Door Corner Decor', 'USafbf88e9d5d533/design/2025-05-30_3adda6c0b7334.jpg') },
+      { id: 'sparkler-holder', cat: 'decor', sub: 'holiday', seasons: ['newyear'], always: true, grams: 19, hours: 1.2, maxColors: 2, materials: ['PLA', 'PLA Matte', 'PLA Silk'],
+        dims: [85, 85, 100],
+        name: 'Държач за бенгалски огън с надпис', desc: 'Пази ръката от искрите. С твой надпис на дръжката — напиши го в бележката към поръчката.',
+        en: { name: "Sparkler holder with your text", desc: "Keeps your hand safe from the sparks. With your text on the handle — add it in the order note." },
+        mw: mw(2175481, 'ThreeD Dad', 'BY', 'Sparkler Holder - Customizable Text', 'US1e2d088a5b09c9/design/2025-12-30_826bb0c7c3ed88.jpeg') },
+      { id: 'glass-name-tags', cat: 'home', sub: 'kitchen', seasons: ['newyear'], always: true, grams: 4, hours: 0.4, materials: ['PLA', 'PLA Silk', 'PETG'],
+        dims: [164, 149, 2], approx: true,
+        name: 'Маркери с имена за чаши (9 бр.)', desc: 'За празничната маса — всеки гост познава чашата си. Имената ги напиши в бележката към поръчката.',
+        en: { name: "Name tags for glasses (set of 9)", desc: "For the festive table — every guest knows their glass. Add the names in the order note." },
+        mw: mw(493337, 'JeskaDee', 'BY-SA', 'Wine Glass Name Tags - SCAD Customizable!!', 'UScddbaa83ef8927/design/2024-06-12_401a54ff6f029.jpeg') },
+      { id: 'party-crown', cat: 'gifts', sub: 'surprises', seasons: ['newyear'], always: true, grams: 12, hours: 0.8, maxColors: 2, materials: ['PLA Silk', 'PLA', 'PLA Matte'],
+        dims: [160, 181, 6],
+        name: 'Коронка-диадема за парти', desc: 'Диадема с „камъчета“ — за новогодишно парти, рожден ден или костюм. Без лепило: камъчетата се забождат.',
+        en: { name: "Party crown headband", desc: "A tiara headband with “gems” — for a New Year party, a birthday or a costume. No glue: the gems snap in." },
+        mw: mw(1450337, 'K93.35', 'BY-SA', 'Crown hairband (no AMS no glue)', 'US662647a90695bb/design/2025-05-24_d6efc919dd0318.jpg') },
 
       // ---------- Подаръци и ключодържатели ----------
       // ---------- Скулптури и фигурки (грамове и часове от профила в MakerWorld) ----------
