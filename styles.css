@@ -983,6 +983,7 @@ body.locked { overflow: hidden; }
 .order-card.st-done { border-left-color: var(--pink); }
 .order-cnote { margin-top: 6px; padding: 8px 12px; font-size: 15px; background: var(--t-sun); border-radius: 12px; }
 .order-mynote { flex: 1 1 220px !important; }
+.order-reason { flex: 1 1 260px !important; border-color: #b4232a !important; }
 .order-written { margin-top: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink-3); }
 .order-notify { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
 .order-actions .order-notify input { flex: none !important; width: 18px; height: 18px; padding: 0; margin: 0; accent-color: var(--ink); }

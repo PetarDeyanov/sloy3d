@@ -188,6 +188,7 @@
         <input data-tracking value="${esc(o['Товарителница'] || '')}" placeholder="Товарителница" aria-label="Товарителница">
         <input class="order-mynote" data-note value="${esc(o['Моя бележка'] || '')}" placeholder="Моя бележка (вижда се само тук)" aria-label="Моя бележка">
         <button class="btn btn-primary btn-sm" type="button" data-save>Запази</button>
+        ${isEmail(o['Имейл']) && o['Статус'] !== 'Отказана' ? '<input class="order-reason" data-reason placeholder="Причина за отказа (по желание — отива в имейла)" aria-label="Причина за отказа" maxlength="300" hidden>' : ''}
         ${isEmail(o['Имейл']) ? `<label class="order-notify" title="При нов статус „${AUTO_MAILS.join('“, „')}“ клиентът получава имейл сам (веднъж за всеки статус)"><input type="checkbox" data-notify checked> ✉ имейл до клиента</label>` : ''}
         ${o['Статус'] === 'Приета' ? '<button class="btn btn-ghost btn-sm" type="button" data-start>▶ Пуснах печата</button>' : ''}
         <button class="btn btn-ghost btn-sm" type="button" data-write>Пиши на клиента</button>
@@ -212,7 +213,7 @@
 
   // При тези статуси Apps Script сам праща имейл до клиента (AUTO_STATUS_MAILS в Code.gs), в оформлението на сайта.
   // „Пиши на клиента“ е за всичко друго (отказ, въпрос, промяна) и за Viber; текстът се пише тук и може да се промени.
-  const AUTO_MAILS = ['Печата се', 'Изпратена', 'Получена'];
+  const AUTO_MAILS = ['Печата се', 'Изпратена', 'Получена', 'Отказана'];
   const message = (o, status) => {
     const en = o['Език'] === 'EN';
     const name = String(o['Име'] || '').trim().split(/\s+/)[0];
@@ -257,7 +258,9 @@
     const status = $('[data-status]', card).value;
     const tracking = $('[data-tracking]', card).value.trim();
     const note = $('[data-note]', card).value.trim();
-    const r = await api('status', { order: o['Поръчка'], status, tracking, note, notify });
+    const reason = status === 'Отказана' ? ($('[data-reason]', card)?.value.trim() || '') : '';   // отива в имейла за отказ
+    const r = await api('status', { order: o['Поръчка'], status, tracking, note, notify, reason });
+    if (status === 'Отказана') $('[data-reason]', card)?.remove();   // имейлът за отказ тръгва веднъж
     Object.assign(o, { 'Статус': status, 'Товарителница': tracking, 'Моя бележка': note });
     if (r.written) { o['Писано на клиента'] = r.written; setWritten(card, r.written); }
     if (r.mailed && typeof D.mailQuota === 'number') D.mailQuota -= 1;
@@ -292,7 +295,8 @@
         if (r.mailed) parts.push(`Клиентът получи имейл „${r.mailed}“ ✓`);
         if (r.mailError) parts.push(`Имейлът до клиента НЕ тръгна: ${r.mailError}`);
         if (status === 'Изпратена' && r.mailed && !o['Товарителница']) parts.push('(без товарителница — прати я с „Пиши на клиента“)');
-        if (status === 'Отказана' && isEmail(o['Имейл']) && box.hidden) parts.push('Напиши на клиента защо — „Пиши на клиента“.');
+        if (status === 'Отказана' && byCard(o) && has(o['Платено'])) parts.push('Платена е с карта — върни сумата от Stripe (Payments → плащането → Refund).');
+        if (status === 'Отказана' && isEmail(o['Имейл']) && !r.mailed && !r.mailError && box.hidden) parts.push('Клиентът не е уведомен — „Пиши на клиента“.');
         msg.textContent = parts.join(' · ');
       } catch (err) {
         msg.textContent = failed(err);
@@ -335,13 +339,16 @@
       }
     }
   });
-  // смяна на статуса при отворено съобщение → нов текст, ако още не е пипан
+  // смяна на статуса: при „Отказана“ — поле за причина (влиза в автоматичния имейл);
+  // при отворено съобщение → нов текст, ако още не е пипан
   $('#orders').addEventListener('change', e => {
     if (!e.target.matches('[data-status]')) return;
     const card = e.target.closest('.order-card');
+    const o = D.orders.find(x => x['Поръчка'] === card.dataset.order);
+    const reason = $('[data-reason]', card);
+    if (reason) reason.hidden = e.target.value !== 'Отказана';
     const box = $('.order-compose', card);
     if (box.hidden || box.dataset.edited) return;
-    const o = D.orders.find(x => x['Поръчка'] === card.dataset.order);
     box.innerHTML = composeHTML(o, message({ ...o, 'Товарителница': $('[data-tracking]', card).value.trim() }, e.target.value));
   });
   $('#orders').addEventListener('input', e => {
