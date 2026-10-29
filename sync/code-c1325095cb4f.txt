@@ -1,0 +1,1350 @@
+// SLOY 3D — Google Apps Script за сайта. Живее в Google таблица (Разширения → Apps Script).
+// Всяка поръчка и запитване от сайта: ред в таблицата + имейл до теб + потвърждение до клиента.
+// Листове: „Поръчки“, „Запитвания“, „Склад“ (наличните филаменти), „Кодове“ (промокодовете), „Абонати“ (pop-up-ът за отстъпка).
+// Файловете от калкулатора и снимките за литофании отиват в Google Drive.
+//
+//  GET  ?action=code&code=X                  → проверка на промокод (активен, дати, брой използвания)
+//  GET  ?action=stock                        → наличните цветове { материал: [цветове] }
+//  POST {action:'files', order, files}       → файлове в Drive, връща линкове
+//  POST {action:'order', order, subject, lang, fields, customer, amount} → ред в „Поръчки“ + имейлите; връща номера
+//  POST {action:'lead', kind, subject, lang, fields} → ред в „Запитвания“ (pop-up-ът — в „Абонати“) + имейл до теб
+//  POST {action:'useCode', code, order}      → +1 използване на кода
+//  Само с ключа за таблото (admin.html):
+//  POST {action:'login' | 'data', key}
+//  POST {action:'status', key, order, status, tracking, note, notify, reason} → при „Печата се“ / „Изпратена“ / „Получена“ / „Отказана“ имейл до клиента
+//  POST {action:'notify', key, order, subject, body}   → имейл до клиента на поръчката
+//  POST {action:'leadStatus', key, id, status, note}
+//  POST {action:'saveStock', key, rows}  ·  {action:'saveCodes', key, rows}
+
+// ---------- Настройки ----------
+const SHOP = 'SLOY 3D';
+const SHEET_ID = '1gco1fP34LnqNDjZHHI11oC3_DwivXoiilWoICc-RNtQ';   // таблицата „SLOY 3D — магазин“ (празно = скриптът е вътре в нея)
+const OWNER_EMAIL = '';          // къде идват поръчките и запитванията; празно = имейлът на акаунта с таблицата
+const REPLY_TO = '';             // на кой адрес ти отговарят клиентите; празно = OWNER_EMAIL
+const SITE_URL = 'https://sloy3d.pages.dev/';   // адресът на сайта (Cloudflare Pages); при собствен домейн смени го тук и в tools/deploy.sh
+const BANK_DETAILS = '';         // за „Банков превод“ — по-добре в Script properties като BANK_DETAILS (напр. 'Петар Деянов · IBAN BG00 XXXX 0000 0000 0000 00 · Банка')
+const CUSTOMER_EMAILS = true;    // потвърждение до клиента за нова поръчка и за запитване
+const CONTACT_PHONE = '0886 776 869';   // в подписа на имейлите до клиенти (обаждане и Viber); празно = без телефон
+const MAKE_DAYS = '2–4';         // изработка, работни дни — както пише на сайта
+const EXPRESS_DAYS = '2';        // експресна изработка — до толкова работни дни
+const SHIP_DAYS = '1–2';         // доставка с Еконт, работни дни
+const AUTO_STATUS_MAILS = ['Печата се', 'Изпратена', 'Получена', 'Отказана'];   // смениш ли статуса в admin на някой от тези → имейл до клиента (при „Отказана“ — с причината, ако я напишеш)
+const THANKS_CODE = '';          // промокод в имейла „Получена“ (създай го в admin → Кодове), напр. 'OTNOVO10'; празно = без код
+const THANKS_OFF = '−10%';       // какво дава кодът — пише се до него
+const MIN_GRAMS = 50;            // цвят с по-малко грама на склад не се предлага на сайта
+const LOW_GRAMS = 150;           // под толкова грама в ролка → имейл „купи нова“
+const LOW_PCS = 10;              // под толкова броя консуматив → имейл
+const WASTE = 0.10;              // брак при печат (+10% към грамовете на поръчката)
+const CONSUMABLE = 'Консуматив'; // „материалът“ на консумативите в листа „Склад“ (броят е в колона „Грама“)
+const MAILER = 'Плик за изпращане';   // по един на поръчка
+const TZ = 'Europe/Sofia';
+const ROOT_FOLDER = 'SLOY 3D — поръчки';
+const MAX_MB = 25;
+const MAX_FILES = 10;
+const FILE_TYPES = { stl: 'model/stl', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+// Еконт — подателят в товарителниците. Профилът в e-Econt (потребител и парола) НЕ е тук, а в Project Settings →
+// Script properties: ECONT_USER и ECONT_PASS. Без тях товарителниците отиват в тестовата среда на Еконт (не са истински).
+const SENDER_NAME = 'SLOY 3D – Петар Деянов';   // подател: име или фирма
+const SENDER_PHONE = '0886776869';               // телефон на подателя (от профила в Еконт)
+const SENDER_OFFICE = '1050';                    // офисът, от който изпращаш: София Бояна, ул. Кумата №77
+const STATUSES = ['Приета', 'Печата се', 'Изпратена', 'Получена', 'Отказана'];
+const LEAD_STATUSES = ['Ново', 'Отговорено', 'Приключено'];
+const LEAD_KINDS = { idea: 'По идея', b2b: 'Фирма' };
+const SHEETS = {
+  'Поръчки': ['Дата', 'Поръчка', 'Статус', 'Товарителница', 'Общо', 'Сума €', 'Име', 'Телефон', 'Имейл', 'Доставка', 'Град',
+    'Офис / адрес', 'Плащане', 'Продукти', 'Експресна', 'Отстъпка', 'Доставка за сметка на', 'Бележка', 'Език', 'Тема',
+    'Моя бележка', 'Писано на клиента', 'Еконт офис', 'Пощ. код', 'Етикет', 'Плащане ID', 'Платено', 'Филамент', 'От склада'],
+  'Запитвания': ['Дата', 'Номер', 'Вид', 'Статус', 'Име', 'Контакт', 'Съобщение', 'Детайли', 'Език', 'Моя бележка'],
+  'Склад': ['Материал', 'Цвят', 'Грама', 'Бележка', 'Сигнал'],
+  'Кодове': ['Код', 'Тип', 'Стойност', 'Мин. поръчка', 'От', 'До', 'Макс. използвания', 'Използван', 'Активен'],
+  'Абонати': ['Дата', 'Име', 'Имейл', 'Език', 'Страница'],
+};
+
+// ---------- Пусни веднъж (и след промяна в листовете): листове, заглавия, примерни кодове, ключ за таблото ----------
+function setup() {
+  const ss = book_();
+  ss.setSpreadsheetTimeZone(TZ);
+  if (/^(Untitled|Неозаглавена)/i.test(ss.getName())) ss.rename(SHOP + ' — магазин');
+  Object.keys(SHEETS).forEach(function (name) {
+    const sh = ss.getSheetByName(name) || ss.insertSheet(name);
+    if (sh.getLastRow() === 0) {
+      sh.appendRow(SHEETS[name]);
+      sh.setFrozenRows(1);
+    } else {
+      // по-стара таблица: липсващите колони отиват най-вдясно
+      const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+      SHEETS[name].forEach(function (h) { if (head.indexOf(h) < 0) sh.getRange(1, sh.getLastColumn() + 1).setValue(h); });
+    }
+    sh.getRange(1, 1, 1, sh.getLastColumn()).setFontWeight('bold');
+  });
+  ['Sheet1', 'Лист1', 'Лист 1'].forEach(function (n) {
+    const s = ss.getSheetByName(n);
+    if (s && s.getLastRow() === 0) ss.deleteSheet(s);
+  });
+  listRule_('Поръчки', 'Статус', STATUSES);
+  listRule_('Запитвания', 'Статус', LEAD_STATUSES);
+  const codes = ss.getSheetByName('Кодове');
+  codes.getRange(2, 5, codes.getMaxRows() - 1, 2).setNumberFormat('@');   // датите като текст: 2026-12-31
+  if (codes.getLastRow() === 1) {
+    codes.appendRow(['SLOY10', 'процент', 10, 0, '', '2026-12-31', 100, 0, 'да']);
+  }
+  // „Склад“ остава празен, докато не го попълниш — дотогава сайтът предлага всички цветове
+  const props = PropertiesService.getScriptProperties();
+  if (!props.getProperty('ADMIN_KEY')) props.setProperty('ADMIN_KEY', randomKey_());
+  Logger.log('Имейлите отиват на: ' + owner_() + ' (остават ' + MailApp.getRemainingDailyQuota() + ' за днес)');
+  showKey();
+}
+
+// Ключът за влизане в admin.html (виж го в „Execution log“ или от менюто „SLOY 3D“ в таблицата)
+function showKey() {
+  const key = adminKey_();
+  Logger.log('Ключ за таблото: ' + key);
+  try { SpreadsheetApp.getUi().alert('Ключ за таблото (admin.html)', key, SpreadsheetApp.getUi().ButtonSet.OK); } catch (e) { /* пуснато от редактора */ }
+}
+
+// Нов ключ — старият спира да работи веднага (напр. ако си влизал от чужд компютър)
+function newKey() {
+  PropertiesService.getScriptProperties().setProperty('ADMIN_KEY', randomKey_());
+  showKey();
+}
+
+// Пробен имейл до теб — за проверка, че известията стигат
+function testEmail() {
+  sendMsg_(owner_(), ownerNote_('Пробен имейл — ' + SHOP, 'Пробен имейл', ['Работи! Оттук ще идват поръчките и запитванията от сайта.']), true);
+  Logger.log('Изпратен до ' + owner_());
+}
+
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu(SHOP)
+    .addItem('Ключ за таблото', 'showKey')
+    .addItem('Нов ключ за таблото', 'newKey')
+    .addItem('Пробен имейл', 'testEmail')
+    .addItem('Примерни имейли до клиенти', 'previewEmails')
+    .addToUi();
+}
+
+// ---------- Вход ----------
+function doGet(e) {
+  const p = (e && e.parameter) || {};
+  try {
+    if (p.action === 'code') return json_(checkCode_(p.code));
+    if (p.action === 'stock') return json_({ ok: true, stock: stockMap_(), card: !!stripeKey_() });
+    return json_({ ok: true, shop: SHOP });
+  } catch (err) {
+    return json_({ ok: false, error: msg_(err) });
+  }
+}
+
+function doPost(e) {
+  try {
+    const d = JSON.parse(e.postData.contents);
+    switch (d.action || 'files') {
+      case 'files': return json_(saveFiles_(d));
+      case 'order': return json_(addOrder_(d));
+      case 'lead': return json_(addLead_(d));
+      case 'useCode': return json_(useCode_(d));
+      case 'payCheck': return json_(payCheck_(d, false));
+      case 'login': auth_(d.key); return json_({ ok: true });
+      case 'data': auth_(d.key); return json_(data_());
+      case 'status': auth_(d.key); return json_(setStatus_(d));
+      case 'notify': auth_(d.key); return json_(notify_(d));
+      case 'leadStatus': auth_(d.key); return json_(setLead_(d));
+      case 'saveStock': auth_(d.key); return json_(saveStock_(d.rows));
+      case 'saveCodes': auth_(d.key); return json_(saveCodes_(d.rows));
+      case 'econt': auth_(d.key); return json_(econtLabel_(d));
+      case 'econtDelete': auth_(d.key); return json_(econtDelete_(d));
+      case 'econtStatus': auth_(d.key); return json_(econtStatus_(d));
+      case 'payRefresh': auth_(d.key); return json_(payCheck_(d, true));
+      case 'payLink': auth_(d.key); return json_(payLink_(d));
+      case 'markPaid': auth_(d.key); return json_(markPaid_(d));
+    }
+    return json_({ ok: false, error: 'unknown action' });
+  } catch (err) {
+    return json_({ ok: false, error: msg_(err) });
+  }
+}
+
+// ---------- Файлове → Drive ----------
+function saveFiles_(d) {
+  const files = (d.files || []).slice(0, MAX_FILES);
+  if (!files.length) throw new Error('Няма файлове');
+  throttle_('files', 40, 600);
+  const folder = getFolder_(ROOT_FOLDER).createFolder(String(d.order || 'без номер').slice(0, 60));
+  const saved = files.map(function (f) {
+    const name = String(f.name || 'file').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 100);
+    const ext = (name.match(/\.([a-z0-9]+)$/i) || [])[1];
+    const type = ext && FILE_TYPES[ext.toLowerCase()];
+    if (!type) throw new Error('Неразрешен тип файл: ' + name);
+    const bytes = Utilities.base64Decode(f.data);
+    if (bytes.length > MAX_MB * 1024 * 1024) throw new Error('Файлът е над ' + MAX_MB + ' MB: ' + name);
+    const file = folder.createFile(Utilities.newBlob(bytes, type, name));
+    return { name: f.name, url: file.getUrl() };
+  });
+  return { ok: true, folder: folder.getUrl(), files: saved };
+}
+
+// ---------- Поръчки ----------
+// fields = полетата за имейла (на български, както ги праща сайтът); customer = редовете за клиента на неговия език
+function addOrder_(d) {
+  const f = d.fields || {};
+  const c = d.customer || {};
+  if (!str_(f['Име']) || !str_(f['Телефон'])) throw new Error('Липсват име или телефон');
+  throttle_('orders', 30, 600);
+  const sent = String(d.order || f['Поръчка'] || '');
+  let order = /^SL-\d{6}-\d{3,4}$/.test(sent) ? sent : '';
+  const dup = withLock_(function () {
+    const sh = sheet_('Поръчки');
+    const col = cols_(sh);
+    if (order) {
+      const row = findRow_(sh, col['Поръчка'], order);
+      if (row) {
+        // същият телефон = същата поръчка, изпратена повторно; иначе — нов номер
+        if (digits_(sh.getRange(row, col['Телефон']).getValue()) === digits_(f['Телефон'])) return true;
+        order = '';
+      }
+    }
+    if (!order) order = uniqueNo_(sh, col['Поръчка'], 'SL');
+    appendObj_(sh, {
+      'Дата': new Date(), 'Поръчка': order, 'Статус': STATUSES[0], 'Общо': f['Общо'], 'Сума €': Number(d.amount) || '',
+      'Име': f['Име'], 'Телефон': f['Телефон'], 'Имейл': f['Имейл'], 'Доставка': f['Доставка'], 'Град': f['Град'],
+      'Офис / адрес': f['Офис / адрес'], 'Плащане': f['Плащане'], 'Продукти': f['Продукти'] || f['Модели'],
+      'Експресна': f['Експресна'], 'Отстъпка': f['Отстъпка'], 'Доставка за сметка на': f['Доставка за сметка на'],
+      'Бележка': f['Бележка'], 'Език': d.lang === 'en' ? 'EN' : 'BG', 'Тема': d.subject,
+      'Еконт офис': String((d.ship && d.ship.office) || '').slice(0, 20), 'Пощ. код': String((d.ship && d.ship.postCode) || '').slice(0, 10),
+      'Филамент': useText_(d.use),
+    });
+    return false;
+  });
+  const bank = /превод/i.test(String(f['Плащане'] || '')) ? bankDetails_() : '';
+  if (dup) return { ok: true, order: order, bank: bank };
+  f['Поръчка'] = order;
+  // плащане с карта / Apple Pay / Google Pay: страница на Stripe за плащане, клиентът отива там веднага
+  let pay = '';
+  if (/карта/i.test(String(f['Плащане'] || '')) && stripeKey_() && Number(d.amount) > 0) {
+    try { pay = checkout_(order, Number(d.amount), email_(f['Имейл']), d.lang === 'en').url; } catch (err) { console.error('Stripe: ' + msg_(err)); }
+  }
+  const subject = oneLine_(String(d.subject || 'Нова поръчка ' + order).split(sent || '\u0000').join(order));
+  try {
+    sendMsg_(owner_(), ownerOrderMail_(order, f, subject), true, email_(f['Имейл']));
+  } catch (err) { console.error('имейл до нас: ' + msg_(err)); }
+  try {
+    confirmOrder_(order, f, c, d.lang === 'en', pay, d.amount);
+  } catch (err) { console.error('потвърждение: ' + msg_(err)); }
+  return { ok: true, order: order, bank: bank, pay: pay };
+}
+
+// потвърждение до клиента (виж orderMail_ в „Имейли“); до 3 автоматични имейла на адрес за 6 часа
+function confirmOrder_(order, f, c, en, pay, amount) {
+  const to = email_(f['Имейл']);
+  if (!CUSTOMER_EMAILS || !to || !allowMail_(to)) return;
+  sendMsg_(to, orderMail_(order, f, c, en, pay, amount), false, replyTo_());
+}
+
+function setStatus_(d) {
+  if (STATUSES.indexOf(d.status) < 0) throw new Error('Невалиден статус');
+  const r = withLock_(function () {
+    const sh = sheet_('Поръчки');
+    const col = cols_(sh);
+    const row = findRow_(sh, col['Поръчка'], String(d.order));
+    if (!row) throw new Error('Няма такава поръчка');
+    const before = String(sh.getRange(row, col['Статус']).getValue());
+    sh.getRange(row, col['Статус']).setValue(d.status);
+    if (d.tracking !== undefined) sh.getRange(row, col['Товарителница']).setValue(clean_(String(d.tracking).slice(0, 60)));
+    if (d.note !== undefined) sh.getRange(row, col['Моя бележка']).setValue(clean_(String(d.note).slice(0, 1000)));
+    // пуснат печат → филаментът и консумативите излизат от склада (веднъж на поръчка)
+    let used = '';
+    if (d.status === 'Печата се' && col['От склада'] && !String(sh.getRange(row, col['От склада']).getValue()).trim()) {
+      used = takeStock_(String(sh.getRange(row, col['Филамент']).getValue()));
+      sh.getRange(row, col['От склада']).setValue(Utilities.formatDate(new Date(), TZ, 'dd.MM HH:mm') + ' · ' + used);
+    }
+    // нов статус от AUTO_STATUS_MAILS → имейл до клиента; веднъж на статус (пази се в „Писано на клиента“)
+    let o = null;
+    if (d.notify !== false && before !== d.status && AUTO_STATUS_MAILS.indexOf(d.status) >= 0) {
+      const x = rowObj_(sh, col, row);
+      const done = String(x['Писано на клиента'] || '').split('; ').some(function (w) { return w.indexOf(d.status + ' · ') === 0; });
+      if (email_(x['Имейл']) && !done) o = x;
+    }
+    return { used: used, stock: used ? stockRows_() : undefined, o: o };
+  });
+  const out = { ok: true, used: r.used, stock: r.stock, mailed: '' };
+  if (r.o) {
+    try {
+      const m = statusMail_(r.o, d.status, { reason: clean_(String(d.reason || '').slice(0, 300)) });
+      sendMsg_(email_(r.o['Имейл']), m, false, replyTo_());
+      out.mailed = m.subject;
+      out.written = addWritten_(String(d.order), d.status);
+    } catch (err) { out.mailError = msg_(err); }
+  }
+  return out;
+}
+
+function rowObj_(sh, col, row) {
+  const v = sh.getRange(row, 1, 1, sh.getLastColumn()).getValues()[0];
+  const o = {};
+  Object.keys(col).forEach(function (h) { o[h] = v[col[h] - 1]; });
+  return o;
+}
+
+// „Писано на клиента“: „Печата се · 19.10 14:20; Изпратена · 20.10 10:02“ — кои имейли е получил клиентът
+function addWritten_(order, status) {
+  return withLock_(function () {
+    const sh = sheet_('Поръчки');
+    const col = cols_(sh);
+    const row = findRow_(sh, col['Поръчка'], order);
+    if (!row) return '';
+    const cell = sh.getRange(row, col['Писано на клиента']);
+    const all = [String(cell.getValue() || '').trim(), status + ' · ' + Utilities.formatDate(new Date(), TZ, 'dd.MM HH:mm')].filter(Boolean).join('; ');
+    const v = all.length > 400 ? '…' + all.slice(-400) : all;
+    cell.setValue(v);
+    return v;
+  });
+}
+
+// ---------- Склад: изваждане при печат ----------
+// d.use от сайта: [{ m: 'PLA', c: ['Черен'], g: 85, q: 1, k: { 'Халка с верижка за ключодържател': 1 } }]
+// В листа се пази четимо: „PLA · Черен · 85 г × 1 [+ Халка с верижка за ключодържател × 1]; …“ — и се чете обратно оттук.
+function useText_(use) {
+  if (!Array.isArray(use)) return '';
+  return use.slice(0, 50).map(function (u) {
+    const cs = (u.c || []).map(function (c) { return String(c).slice(0, 30); });
+    const k = Object.keys(u.k || {}).map(function (n) { return String(n).slice(0, 50) + ' × ' + Math.max(1, Math.round(Number(u.k[n]) || 1)); });
+    return String(u.m || '').slice(0, 30) + ' · ' + cs.join(' + ') + ' · ' + Math.max(0, Math.round(Number(u.g) || 0)) + ' г × ' + Math.max(1, Math.round(Number(u.q) || 1))
+      + (k.length ? ' [+ ' + k.join(', ') + ']' : '');
+  }).join('; ');
+}
+
+function parseUse_(text) {
+  return String(text || '').split('; ').map(function (part) {
+    const m = part.match(/^(.+?) · (.+?) · (\d+) г × (\d+)(?: \[\+ (.+)\])?$/);
+    if (!m) return null;
+    const k = {};
+    (m[5] || '').split(', ').forEach(function (x) { const y = x.match(/^(.+) × (\d+)$/); if (y) k[y[1]] = Number(y[2]); });
+    return { m: m[1], c: m[2].split(' + '), g: Number(m[3]), q: Number(m[4]), k: k };
+  }).filter(Boolean);
+}
+
+// вади грамовете (+брак) от ролките и консумативите; връща кратко описание; праща имейл, ако нещо свършва
+function takeStock_(text) {
+  const use = parseUse_(text);
+  const sh = sheet_('Склад');
+  const v = sh.getDataRange().getValues();
+  const find = function (mat, color) {
+    for (let i = 1; i < v.length; i++) if (String(v[i][0]).trim() === mat && String(v[i][1]).trim() === color) return i;
+    return -1;
+  };
+  const done = [], missing = [];
+  const take = function (mat, color, amount, unit) {
+    const i = find(mat, color);
+    if (i < 0) { missing.push(mat === CONSUMABLE ? color : mat + ' ' + color); return; }
+    v[i][2] = Math.max(0, Math.round((Number(v[i][2]) || 0) - amount));
+    sh.getRange(i + 1, 3).setValue(v[i][2]);
+    done.push((mat === CONSUMABLE ? color : mat + ' ' + color) + ' −' + Math.round(amount) + ' ' + unit);
+  };
+  use.forEach(function (u) {
+    const total = u.g * u.q * (1 + WASTE);
+    u.c.forEach(function (c) { take(u.m, c, total / u.c.length, 'г'); });   // многоцветните — поравно
+    Object.keys(u.k).forEach(function (n) { take(CONSUMABLE, n, u.k[n] * u.q, 'бр.'); });
+  });
+  if (use.length) take(CONSUMABLE, MAILER, 1, 'бр.');
+  lowStockAlert_();
+  if (!use.length) return 'няма данни за материала — извади ръчно';
+  return done.join(', ') + (missing.length ? ' · няма в склада: ' + missing.join(', ') : '');
+}
+
+// ролки под LOW_GRAMS и консумативи под LOW_PCS → един имейл; „Сигнал“ пази кога е пратен, за да не идва всеки път
+function lowStockAlert_() {
+  const sh = sheet_('Склад');
+  const v = sh.getDataRange().getValues();
+  const low = [];
+  for (let i = 1; i < v.length; i++) {
+    if (!v[i][0] || !v[i][1]) continue;
+    const pcs = String(v[i][0]).trim() === CONSUMABLE;
+    const left = Number(v[i][2]) || 0;
+    const isLow = left < (pcs ? LOW_PCS : LOW_GRAMS);
+    if (isLow && !String(v[i][4] || '').trim()) {
+      low.push((pcs ? String(v[i][1]) : v[i][0] + ' ' + v[i][1]) + ' — остават ' + left + (pcs ? ' бр.' : ' г'));
+      sh.getRange(i + 1, 5).setValue(Utilities.formatDate(new Date(), TZ, 'dd.MM HH:mm'));
+    }
+    if (!isLow && String(v[i][4] || '').trim()) sh.getRange(i + 1, 5).setValue('');
+  }
+  if (low.length) {
+    try {
+      sendMsg_(owner_(), ownerNote_('Свършва на склад: ' + low.length + (low.length === 1 ? ' позиция' : ' позиции') + ' — ' + SHOP,
+        'Свършва на склад', ['Време е да поръчаш:'], [{ box: low.map(function (l) { return '• ' + l; }), tone: 'sun' },
+          { small: 'Праговете: ролка под ' + LOW_GRAMS + ' г, консуматив под ' + LOW_PCS + ' бр. Щом допълниш склада в admin, сигналът се нулира.' }]), true);
+    } catch (err) { console.error('сигнал за склад: ' + msg_(err)); }
+  }
+  return low;
+}
+
+// имейл до клиента от таблото (текстът е готов там и може да се промени преди изпращане)
+function notify_(d) {
+  const sh = sheet_('Поръчки');
+  const col = cols_(sh);
+  const row = findRow_(sh, col['Поръчка'], String(d.order));
+  if (!row) throw new Error('Няма такава поръчка');
+  const to = email_(sh.getRange(row, col['Имейл']).getValue());
+  if (!to) throw new Error('Клиентът не е оставил имейл');
+  const subject = oneLine_(String(d.subject || '')).slice(0, 200);
+  const body = String(d.body || '').slice(0, 5000);
+  if (!subject || !body.trim()) throw new Error('Празно съобщение');
+  sendMsg_(to, textMail_(subject, body, String(sh.getRange(row, col['Език']).getValue()) === 'EN'), false, replyTo_());
+  return { ok: true, written: addWritten_(String(d.order), String(sh.getRange(row, col['Статус']).getValue())) };
+}
+
+// ---------- Запитвания (По твоя идея, За фирми) и абонати (pop-up-ът) ----------
+function addLead_(d) {
+  const f = d.fields || {};
+  const lang = d.lang === 'en' ? 'EN' : 'BG';
+  if (d.kind === 'promo') {
+    const mail = email_(f['Имейл']);
+    if (!mail) throw new Error('Невалиден имейл');
+    throttle_('promo', 60, 600);
+    withLock_(function () {
+      appendObj_(sheet_('Абонати'), { 'Дата': new Date(), 'Име': f['Име'], 'Имейл': mail, 'Език': lang, 'Страница': f['Страница'] });
+    });
+    return { ok: true };
+  }
+  throttle_('leads', 30, 600);
+  const kind = LEAD_KINDS[d.kind] || 'Друго';
+  const name = f['Име'] || f['Лице за контакт'] || '';
+  if (!str_(name)) throw new Error('Липсва име');
+  const mail = email_(f['Имейл']) || email_(f['Контакт']);
+  const own = ['Име', 'Лице за контакт', 'Контакт', 'Имейл', 'Телефон', 'Описание', 'Съобщение', 'Език'];
+  const details = Object.keys(f).filter(function (k) { return own.indexOf(k) < 0 && f[k]; })
+    .map(function (k) { return k + ': ' + f[k]; }).join('\n');
+  const no = withLock_(function () {
+    const sh = sheet_('Запитвания');
+    const n = uniqueNo_(sh, cols_(sh)['Номер'], 'Z');
+    appendObj_(sh, {
+      'Дата': new Date(), 'Номер': n, 'Вид': kind, 'Статус': LEAD_STATUSES[0], 'Име': name,
+      'Контакт': [f['Контакт'], f['Имейл'], f['Телефон']].filter(Boolean).join(' · '),
+      'Съобщение': f['Описание'] || f['Съобщение'], 'Детайли': details, 'Език': lang,
+    });
+    return n;
+  });
+  try {
+    sendMsg_(owner_(), ownerLeadMail_(no, kind, oneLine_(String(d.subject || kind)) + ' (' + no + ')', f), true, mail);
+  } catch (err) { console.error('имейл до нас: ' + msg_(err)); }
+  try {
+    if (CUSTOMER_EMAILS && mail && allowMail_(mail)) sendMsg_(mail, leadMail_(no, name, f, lang === 'EN'), false, replyTo_());
+  } catch (err) { console.error('потвърждение: ' + msg_(err)); }
+  return { ok: true, id: no };
+}
+
+function setLead_(d) {
+  if (LEAD_STATUSES.indexOf(d.status) < 0) throw new Error('Невалиден статус');
+  return withLock_(function () {
+    const sh = sheet_('Запитвания');
+    const col = cols_(sh);
+    const row = findRow_(sh, col['Номер'], String(d.id));
+    if (!row) throw new Error('Няма такова запитване');
+    sh.getRange(row, col['Статус']).setValue(d.status);
+    if (d.note !== undefined) sh.getRange(row, col['Моя бележка']).setValue(clean_(String(d.note).slice(0, 1000)));
+    return { ok: true };
+  });
+}
+
+// ---------- Всичко за таблото с една заявка ----------
+function data_() {
+  return {
+    ok: true, orders: table_('Поръчки', 500), leads: table_('Запитвания', 300), stock: stockRows_(), codes: codeRows_(),
+    statuses: STATUSES, leadStatuses: LEAD_STATUSES, minGrams: MIN_GRAMS, owner: owner_(), mailQuota: MailApp.getRemainingDailyQuota(),
+    econt: { live: !!econtAuth_(), senderName: SENDER_NAME, senderPhone: SENDER_PHONE, senderOffice: SENDER_OFFICE },
+    card: !!stripeKey_(),
+    lowGrams: LOW_GRAMS, lowPcs: LOW_PCS, consumable: CONSUMABLE, mailer: MAILER,
+  };
+}
+
+// ---------- Еконт: товарителници ----------
+// d = { order, mode: 'calculate' | 'create', officeCode | city + postCode + street, weight, packs, description, cod, receiverPays }
+function econtLabel_(d) {
+  const sh = sheet_('Поръчки');
+  const col = cols_(sh);
+  const row = findRow_(sh, col['Поръчка'], String(d.order));
+  if (!row) throw new Error('Няма такава поръчка');
+  const get = function (h) { return col[h] ? String(sh.getRange(row, col[h]).getValue()).trim() : ''; };
+  const create = d.mode === 'create';
+  if (create && /^\d{8,}$/.test(get('Товарителница'))) throw new Error('Поръчката вече има товарителница ' + get('Товарителница') + ' — изтрий я първо, ако искаш нова');
+  const live = !!econtAuth_();
+  const senderOffice = String(SENDER_OFFICE || (live ? '' : '1127')).trim();
+  const senderPhone = digits_(SENDER_PHONE) || (live ? '' : '0888123456');
+  if (!senderOffice || !senderPhone) throw new Error('Попълни SENDER_PHONE и SENDER_OFFICE в началото на Code.gs');
+  const label = {
+    senderClient: { name: SENDER_NAME, phones: [senderPhone] },
+    senderOfficeCode: senderOffice,
+    receiverClient: { name: get('Име'), phones: [digits_(get('Телефон'))] },
+    packCount: Math.min(20, Math.max(1, Math.round(Number(d.packs) || 1))),
+    shipmentType: 'PACK',
+    weight: Math.min(50, Math.max(0.1, Number(d.weight) || 0.5)),
+    shipmentDescription: String(d.description || '3D принтирани изделия').slice(0, 100),
+    orderNumber: String(d.order),
+    services: {},
+  };
+  const office = String(d.officeCode || '').trim();
+  if (office) label.receiverOfficeCode = office;
+  else {
+    const city = str_(d.city).replace(/\s*\d{4}$/, '');
+    if (!city || !str_(d.street)) throw new Error('Избери офис на Еконт или попълни град, пощенски код и адрес');
+    label.receiverAddress = { city: { country: { code3: 'BGR' }, name: city, postCode: str_(d.postCode) }, fullAddress: str_(d.street) };
+  }
+  const cod = Math.round((Number(d.cod) || 0) * 100) / 100;
+  if (cod > 0) { label.services.cdAmount = cod; label.services.cdType = 'get'; label.services.cdCurrency = 'EUR'; }
+  if (d.receiverPays) label.paymentReceiverMethod = 'cash';
+  const res = econt_('Shipments/LabelService.createLabel.json', { label: label, mode: create ? 'create' : 'calculate' });
+  const l = res.label || {};
+  const out = {
+    ok: true, live: live, price: l.totalPrice, currency: l.currency || 'EUR', senderDue: l.senderDueAmount, receiverDue: l.receiverDueAmount,
+    expected: l.expectedDeliveryDate ? Utilities.formatDate(new Date(l.expectedDeliveryDate), TZ, 'dd.MM') : '',
+  };
+  if (create) {
+    out.shipment = String(l.shipmentNumber || '');
+    out.pdf = String(l.pdfURL || '');
+    if (!out.shipment) throw new Error('Еконт не върна номер на товарителница');
+    withLock_(function () {
+      sh.getRange(row, col['Товарителница']).setValue(clean_(out.shipment));
+      if (col['Етикет']) sh.getRange(row, col['Етикет']).setValue(out.pdf);
+      if (office && col['Еконт офис']) sh.getRange(row, col['Еконт офис']).setValue(clean_(office));
+    });
+  }
+  return out;
+}
+
+function econtDelete_(d) {
+  const sh = sheet_('Поръчки');
+  const col = cols_(sh);
+  const row = findRow_(sh, col['Поръчка'], String(d.order));
+  if (!row) throw new Error('Няма такава поръчка');
+  const num = String(sh.getRange(row, col['Товарителница']).getValue()).trim();
+  if (!/^\d{8,}$/.test(num)) throw new Error('Няма товарителница за изтриване');
+  const res = econt_('Shipments/LabelService.deleteLabels.json', { shipmentNumbers: [num] });
+  const r = (res.results || [])[0] || {};
+  if (r.error) throw new Error('Еконт: ' + econtError_(r.error));
+  withLock_(function () {
+    sh.getRange(row, col['Товарителница']).setValue('');
+    if (col['Етикет']) sh.getRange(row, col['Етикет']).setValue('');
+  });
+  return { ok: true };
+}
+
+function econtStatus_(d) {
+  const num = String(d.shipment || '').trim();
+  if (!/^\d{8,}$/.test(num)) throw new Error('Невалиден номер на товарителница');
+  const res = econt_('Shipments/ShipmentService.getShipmentStatuses.json', { shipmentNumbers: [num] });
+  const s = (res.shipmentStatuses || [])[0] || {};
+  if (s.error) throw new Error('Еконт: ' + econtError_(s.error));
+  const st = s.status || {};
+  const events = (st.trackingEvents || []).slice(-3).map(function (e) {
+    return (e.time ? Utilities.formatDate(new Date(e.time), TZ, 'dd.MM HH:mm') + ' ' : '') + (e.destinationDetails || e.destinationType || '') + (e.officeName ? ' · ' + e.officeName : '');
+  });
+  return { ok: true, status: st.shortDeliveryStatus || '', cdCollected: st.cdCollectedAmount || 0, cdPaid: st.cdPaidAmount || 0, events: events };
+}
+
+// ---------- Плащане с карта: Stripe Checkout (карта, Apple Pay, Google Pay) ----------
+// Ключът е в Script properties → STRIPE_SECRET (sk_test_… за проба, sk_live_… на живо) — въвежда го собственикът.
+// Без него сайтът не показва плащането с карта.
+function stripeKey_() {
+  return String(PropertiesService.getScriptProperties().getProperty('STRIPE_SECRET') || '').trim();
+}
+
+function stripe_(method, path, params) {
+  const key = stripeKey_();
+  if (!key) throw new Error('Няма STRIPE_SECRET в Script properties');
+  const opt = { method: method, muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + key } };
+  if (params) opt.payload = form_(params);
+  const res = UrlFetchApp.fetch('https://api.stripe.com/v1/' + path, opt);
+  let j;
+  try { j = JSON.parse(res.getContentText('UTF-8')); } catch (e) { throw new Error('Stripe отговори с ' + res.getResponseCode()); }
+  if (res.getResponseCode() >= 400) throw new Error('Stripe: ' + ((j.error && j.error.message) || res.getResponseCode()));
+  return j;
+}
+
+// { a: { b: 1 }, c: [x] } → a[b]=1&c[0]=x (форматът на Stripe)
+function form_(obj) {
+  const out = [];
+  (function walk(v, k) {
+    if (v === undefined || v === null || v === '') return;
+    if (typeof v === 'object') Object.keys(v).forEach(function (n) { walk(v[n], k ? k + '[' + n + ']' : n); });
+    else out.push(encodeURIComponent(k) + '=' + encodeURIComponent(v));
+  })(obj, '');
+  return out.join('&');
+}
+
+// нова страница за плащане (важи 24 часа); номерът ѝ се пази в „Плащане ID“
+function checkout_(order, amount, email, en) {
+  const s = stripe_('post', 'checkout/sessions', {
+    mode: 'payment',
+    line_items: [{ quantity: 1, price_data: { currency: 'eur', unit_amount: Math.round(amount * 100), product_data: { name: (en ? 'Order ' : 'Поръчка ') + order + ' — ' + SHOP } } }],
+    success_url: SITE_URL + 'plateno.html?order=' + order + '&session_id={CHECKOUT_SESSION_ID}',
+    cancel_url: SITE_URL + 'plateno.html?order=' + order + '&cancel=1',
+    client_reference_id: order, customer_email: email || '', locale: en ? 'en' : 'bg', metadata: { order: order },
+  });
+  withLock_(function () {
+    const sh = sheet_('Поръчки');
+    const col = cols_(sh);
+    const row = findRow_(sh, col['Поръчка'], order);
+    if (row && col['Плащане ID']) sh.getRange(row, col['Плащане ID']).setValue(s.id);
+  });
+  return { id: s.id, url: s.url };
+}
+
+// платена ли е поръчката: публично (страницата plateno.html) — само с номера на плащането; от таблото — с ключа
+function payCheck_(d, admin) {
+  const sh = sheet_('Поръчки');
+  const col = cols_(sh);
+  const row = findRow_(sh, col['Поръчка'], String(d.order));
+  if (!row) throw new Error('Няма такава поръчка');
+  const sid = String(sh.getRange(row, col['Плащане ID']).getValue()).trim();
+  if (!admin && (!d.session || d.session !== sid)) throw new Error('Невалидно плащане');
+  const done = String(sh.getRange(row, col['Платено']).getValue()).trim();
+  if (done) return { ok: true, paid: true, when: done };
+  if (!sid) return { ok: true, paid: false };
+  const s = stripe_('get', 'checkout/sessions/' + encodeURIComponent(sid));
+  if (s.payment_status === 'paid') {
+    const note = Utilities.formatDate(new Date(), TZ, 'dd.MM HH:mm') + ' · ' + (s.amount_total / 100).toFixed(2) + ' € с карта';
+    sh.getRange(row, col['Платено']).setValue(note);
+    try {
+      const sum = (s.amount_total / 100).toFixed(2).replace('.', ',') + ' €';
+      sendMsg_(owner_(), ownerNote_('Платена поръчка ' + d.order + ' — ' + sum, 'Платена поръчка ' + d.order,
+        ['Stripe потвърди плащане с карта: ' + sum + '. Можеш да пуснеш печата.']), true);
+    } catch (e) { /* без известие */ }
+    return { ok: true, paid: true, when: note };
+  }
+  return { ok: true, paid: false, url: s.status === 'open' ? s.url : '' };
+}
+
+// от таблото: нов линк за плащане (старият е изтекъл или клиентът го е загубил)
+function payLink_(d) {
+  const sh = sheet_('Поръчки');
+  const col = cols_(sh);
+  const row = findRow_(sh, col['Поръчка'], String(d.order));
+  if (!row) throw new Error('Няма такава поръчка');
+  const amount = Number(sh.getRange(row, col['Сума €']).getValue()) || 0;
+  if (!amount) throw new Error('Липсва сума в поръчката');
+  const en = String(sh.getRange(row, col['Език']).getValue()) === 'EN';
+  return { ok: true, url: checkout_(String(d.order), amount, email_(sh.getRange(row, col['Имейл']).getValue()), en).url };
+}
+
+// от таблото: ръчно „платена“ (банков превод, плащане на ръка)
+function markPaid_(d) {
+  return withLock_(function () {
+    const sh = sheet_('Поръчки');
+    const col = cols_(sh);
+    const row = findRow_(sh, col['Поръчка'], String(d.order));
+    if (!row) throw new Error('Няма такава поръчка');
+    const note = d.paid ? Utilities.formatDate(new Date(), TZ, 'dd.MM HH:mm') + ' · ' + clean_(String(d.how || 'отбелязано ръчно').slice(0, 40)) : '';
+    sh.getRange(row, col['Платено']).setValue(note);
+    return { ok: true, when: note };
+  });
+}
+
+// банковите данни за „Банков превод“: Script properties → BANK_DETAILS (въвежда ги собственикът), иначе константата
+function bankDetails_() {
+  return String(PropertiesService.getScriptProperties().getProperty('BANK_DETAILS') || BANK_DETAILS || '').trim();
+}
+
+function econtAuth_() {
+  const p = PropertiesService.getScriptProperties();
+  const user = p.getProperty('ECONT_USER'), pass = p.getProperty('ECONT_PASS');
+  return user && pass ? user + ':' + pass : '';
+}
+
+// заявка към Еконт: с профила от Script properties — истинската система; без него — тестовата (demo.econt.com)
+function econt_(path, body) {
+  const auth = econtAuth_();
+  const base = auth ? 'https://ee.econt.com/services/' : 'https://demo.econt.com/ee/services/';
+  const res = UrlFetchApp.fetch(base + path, {
+    method: 'post', contentType: 'application/json', payload: JSON.stringify(body), muteHttpExceptions: true,
+    headers: { Authorization: 'Basic ' + Utilities.base64Encode(auth || 'iasp-dev:1Asp-dev', Utilities.Charset.UTF_8) },
+  });
+  const code = res.getResponseCode();
+  const text = res.getContentText('UTF-8');
+  let j;
+  try { j = JSON.parse(text); } catch (e) { throw new Error('Еконт отговори с ' + code + (code === 401 ? ' — провери ECONT_USER и ECONT_PASS' : '')); }
+  if (code >= 400 || (j && j.type && j.innerErrors)) throw new Error('Еконт: ' + econtError_(j));
+  return j;
+}
+
+// грешките на Еконт са вложени — събираме смислените съобщения
+function econtError_(e) {
+  const out = [];
+  (function walk(x) {
+    if (!x) return;
+    const m = String(x.message || '').trim();
+    if (m && m !== ':' && out.indexOf(m) < 0) out.push(m);
+    (x.innerErrors || []).forEach(walk);
+  })(e);
+  return out.join(' ') || 'неизвестна грешка';
+}
+
+// проба от редактора: цена на товарителница за най-новата поръчка (нищо не се създава)
+function testEcont() {
+  const o = table_('Поръчки', 1)[0];
+  if (!o) { Logger.log('Няма поръчки'); return; }
+  const r = econtLabel_({ order: o['Поръчка'], mode: 'calculate', officeCode: o['Еконт офис'] || (econtAuth_() ? SENDER_OFFICE : '40008'), weight: 0.5, cod: o['Сума €'], receiverPays: true });
+  Logger.log((r.live ? 'ИСТИНСКИ' : 'ТЕСТОВ') + ' режим · ' + o['Поръчка'] + ' · цена ' + r.price + ' ' + r.currency + ' · плаща получателят ' + r.receiverDue + ' · доставка ' + r.expected);
+}
+
+// проба от редактора: приема ли Еконт ECONT_USER / ECONT_PASS (само чете профила, нищо не създава)
+function econtCheck() {
+  const res = econt_('Profile/ProfileService.getClientProfiles.json', {});
+  (res.profiles || []).forEach(function (p) {
+    const c = p.client || {};
+    const pay = (p.cdPayOptions || []).map(function (o) { return o.method + (o.IBAN ? ' ' + o.IBAN.slice(-4) : '') + (o.officeCode ? ' офис ' + o.officeCode : ''); });
+    Logger.log((econtAuth_() ? 'Истинската система' : 'ТЕСТОВАТА система') + ' · профил: ' + (c.name || '?') + ' (№ ' + (c.clientNumber || '?') + ')'
+      + ' · телефони: ' + (c.phones || []).join(', ') + ' · наложен платеж: ' + (pay.join('; ') || 'не е настроен'));
+  });
+  if (!(res.profiles || []).length) Logger.log('Еконт прие данните, но не върна профил');
+}
+
+// редовете на листа като обекти по заглавията; най-новите първо. _ts = датата в милисекунди (за статистиката)
+function table_(name, limit) {
+  const v = sheet_(name).getDataRange().getValues();
+  const head = v[0].map(String);
+  return v.slice(1).filter(function (r) { return r[1]; }).map(function (r) {
+    const o = {};
+    head.forEach(function (h, i) {
+      const x = r[i];
+      if (x instanceof Date) { o[h] = Utilities.formatDate(x, TZ, 'dd.MM.yyyy HH:mm'); if (i === 0) o._ts = x.getTime(); }
+      else o[h] = typeof x === 'number' ? x : String(x);
+    });
+    return o;
+  }).reverse().slice(0, limit);
+}
+
+// ---------- Склад ----------
+function stockRows_() {
+  const v = sheet_('Склад').getDataRange().getValues();
+  return v.slice(1).filter(function (r) { return r[0] && r[1]; }).map(function (r) {
+    return { material: String(r[0]).trim(), color: String(r[1]).trim(), grams: Number(r[2]) || 0, note: String(r[3] || ''), signal: String(r[4] || '') };
+  });
+}
+
+function stockMap_() {
+  const map = {};
+  stockRows_().forEach(function (r) {
+    if (r.grams < MIN_GRAMS || r.material === CONSUMABLE) return;
+    (map[r.material] = map[r.material] || []).push(r.color);
+  });
+  return map;
+}
+
+function saveStock_(rows) {
+  if (!Array.isArray(rows)) throw new Error('Няма редове');
+  const clean = rows.filter(function (r) { return r && r.material && r.color; }).slice(0, 1000).map(function (r) {
+    return [clean_(String(r.material).slice(0, 40)), clean_(String(r.color).slice(0, 60)), Math.max(0, Math.round(Number(r.grams) || 0)), clean_(String(r.note || '').slice(0, 200)), String(r.signal || '').slice(0, 20)];
+  });
+  return withLock_(function () {
+    const sh = sheet_('Склад');
+    if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 5).clearContent();
+    if (clean.length) sh.getRange(2, 1, clean.length, 5).setValues(clean);
+    lowStockAlert_();
+    return { ok: true, saved: clean.length, stock: stockRows_() };
+  });
+}
+
+// ---------- Промокодове ----------
+function checkCode_(input) {
+  const code = String(input || '').trim().toUpperCase();
+  if (!code) return { ok: false, reason: 'empty' };
+  const v = sheet_('Кодове').getDataRange().getValues();
+  for (let i = 1; i < v.length; i++) {
+    const r = v[i];
+    if (String(r[0]).trim().toUpperCase() !== code) continue;
+    if (r[8] === false || /^(не|no|false)$/i.test(String(r[8]).trim())) return { ok: false, reason: 'invalid' };
+    const today = ymd_(new Date());
+    const from = ymd_(r[4]), to = ymd_(r[5]);
+    if (from && today < from) return { ok: false, reason: 'notyet' };
+    if (to && today > to) return { ok: false, reason: 'expired' };
+    const max = Number(r[6]) || 0, used = Number(r[7]) || 0;
+    if (max && used >= max) return { ok: false, reason: 'used' };
+    return {
+      ok: true,
+      type: /сума|fixed|€|eur/i.test(String(r[1])) ? 'fixed' : 'percent',
+      value: Number(r[2]) || 0,
+      minOrder: Number(r[3]) || 0,
+    };
+  }
+  return { ok: false, reason: 'invalid' };
+}
+
+function useCode_(d) {
+  const code = String(d.code || '').trim().toUpperCase();
+  return withLock_(function () {
+    const sh = sheet_('Кодове');
+    const v = sh.getDataRange().getValues();
+    for (let i = 1; i < v.length; i++) {
+      if (String(v[i][0]).trim().toUpperCase() === code) {
+        sh.getRange(i + 1, 8).setValue((Number(v[i][7]) || 0) + 1);
+        return { ok: true };
+      }
+    }
+    return { ok: false, reason: 'invalid' };
+  });
+}
+
+function codeRows_() {
+  const v = sheet_('Кодове').getDataRange().getValues();
+  return v.slice(1).filter(function (r) { return String(r[0]).trim(); }).map(function (r) {
+    return {
+      code: String(r[0]).trim().toUpperCase(), type: /сума|fixed|€|eur/i.test(String(r[1])) ? 'сума' : 'процент',
+      value: Number(r[2]) || 0, minOrder: Number(r[3]) || 0, from: ymd_(r[4]), to: ymd_(r[5]),
+      max: Number(r[6]) || 0, used: Number(r[7]) || 0, active: !(r[8] === false || /^(не|no|false)$/i.test(String(r[8]).trim())),
+    };
+  });
+}
+
+function saveCodes_(rows) {
+  if (!Array.isArray(rows)) throw new Error('Няма редове');
+  const date = function (s) { s = String(s || '').trim(); if (s && !/^\d{4}-\d{2}-\d{2}$/.test(s)) throw new Error('Датата трябва да е като 2026-12-31: ' + s); return s; };
+  const seen = {};
+  const clean = rows.slice(0, 500).map(function (r) {
+    const code = String(r.code || '').trim().toUpperCase();
+    if (!/^[A-Z0-9][A-Z0-9_-]{1,29}$/.test(code)) throw new Error('Кодът е само с латински букви и цифри (2–30 знака): ' + (code || 'празен'));
+    if (seen[code]) throw new Error('Кодът се повтаря: ' + code);
+    seen[code] = true;
+    const value = Number(r.value) || 0;
+    if (value <= 0) throw new Error('Стойността на ' + code + ' трябва да е над 0');
+    const type = r.type === 'сума' ? 'сума' : 'процент';
+    if (type === 'процент' && value > 100) throw new Error('Процентът на ' + code + ' е над 100');
+    return [code, type, value, Math.max(0, Number(r.minOrder) || 0), date(r.from), date(r.to),
+      Number(r.max) > 0 ? Math.round(Number(r.max)) : '', Math.max(0, Math.round(Number(r.used) || 0)), r.active ? 'да' : 'не'];
+  });
+  return withLock_(function () {
+    const sh = sheet_('Кодове');
+    if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 9).clearContent();
+    sh.getRange(2, 5, sh.getMaxRows() - 1, 2).setNumberFormat('@');
+    if (clean.length) sh.getRange(2, 1, clean.length, 9).setValues(clean);
+    return { ok: true, saved: clean.length };
+  });
+}
+
+// ---------- Помощни ----------
+function adminKey_() {
+  return PropertiesService.getScriptProperties().getProperty('ADMIN_KEY') || '';
+}
+
+function randomKey_() {
+  const abc = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, Utilities.getUuid() + Date.now());
+  let s = '';
+  for (let i = 0; i < 16; i++) s += abc[(bytes[i] + 256) % abc.length] + (i % 4 === 3 && i < 15 ? '-' : '');
+  return s;
+}
+
+// ключът се сравнява; след 20 грешни опита входът спира за 15 минути
+function auth_(key) {
+  const real = adminKey_();
+  if (!real) throw new Error('Няма ключ за таблото — пусни setup() в Apps Script');
+  const cache = CacheService.getScriptCache();
+  const fails = Number(cache.get('fails') || 0);
+  if (fails >= 20) throw new Error('Твърде много грешни опити — изчакай 15 минути');
+  if (String(key || '') !== real) {
+    cache.put('fails', String(fails + 1), 900);
+    throw new Error('Грешен ключ');
+  }
+}
+
+// защита от залпове заявки: най-много limit пъти за seconds секунди (за целия сайт)
+function throttle_(name, limit, seconds) {
+  const cache = CacheService.getScriptCache();
+  const n = Number(cache.get('t:' + name) || 0);
+  if (n >= limit) throw new Error('Твърде много заявки — опитай пак след няколко минути');
+  cache.put('t:' + name, String(n + 1), seconds);
+}
+
+// до 3 автоматични имейла на един адрес за 6 часа — някой да не ползва сайта, за да спами чужда поща
+function allowMail_(to) {
+  const cache = CacheService.getScriptCache();
+  const k = 'm:' + to.toLowerCase().slice(0, 200);
+  const n = Number(cache.get(k) || 0);
+  if (n >= 3) return false;
+  cache.put(k, String(n + 1), 21600);
+  return true;
+}
+
+// ---------- Имейли ----------
+// Всеки имейл е { subject, pre, blocks } → HTML в цветовете на сайта + текстова версия (за програми без HTML).
+// Блокове: {h} заглавие · {p} абзац · {small} дребен текст · {items, rows, total} продуктите · {kv, title, tone} таблица
+// „етикет — стойност“ · {box, title, tone} каре с редове · {btn, url, note} бутон · {steps, title} номерирани стъпки ·
+// {quote, title} цитат · {pre, title} текст както е (продуктите в имейла до теб).
+const MAIL_C = { bg: '#f5f1e8', paper: '#fffdf8', ink: '#17151f', ink2: '#4a4656', ink3: '#8a8494', soft: '#ddd4c2', lime: '#c6f432',
+  lime2: '#e6fb9f', sun: '#ffecb0', sky: '#d5f1ff', pink: '#ffd6e9', link: '#2451e0' };
+const MAIL_F = 'font-family:Arial,Helvetica,sans-serif;';
+
+function esc_(s) {
+  return String(s === undefined || s === null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// текст → HTML: екранира, линковете стават линкове, новите редове — <br>
+function rich_(s) {
+  return esc_(s).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)]/g, function (u) {
+    return '<a href="' + u + '" style="color:' + MAIL_C.link + ';word-break:break-all;">' + u + '</a>';
+  }).replace(/\n/g, '<br>');
+}
+
+function render_(m, owner) {
+  const C = MAIL_C, F = MAIL_F;
+  const html = [], text = [];
+  const tint = function (t) { return C[t] || C.lime2; };
+  const table = function (inner, style) {
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;' + (style || '') + '">' + inner + '</table>';
+  };
+  const boxed = function (inner, tone) {
+    return table('<tr><td style="padding:14px 16px;' + F + 'font-size:15px;line-height:1.5;color:' + C.ink + ';">' + inner + '</td></tr>',
+      'margin:0 0 18px;background:' + tint(tone) + ';border:2px solid ' + C.ink + ';border-radius:14px;');
+  };
+  const title = function (t) { return t ? '<div style="' + F + 'font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:' + C.ink2 + ';margin:0 0 8px;">' + esc_(t) + '</div>' : ''; };
+  (m.blocks || []).forEach(function (b) {
+    if (!b) return;
+    if (b.h) {
+      html.push('<h1 style="' + F + 'margin:0 0 14px;font-size:24px;line-height:1.25;font-weight:800;color:' + C.ink + ';">' + esc_(b.h) + '</h1>');
+      text.push(b.h, '');
+    } else if (b.p) {
+      html.push('<p style="' + F + 'margin:0 0 16px;font-size:16px;line-height:1.55;color:' + C.ink + ';">' + rich_(b.p) + '</p>');
+      text.push(b.p, '');
+    } else if (b.small) {
+      html.push('<p style="' + F + 'margin:-6px 0 18px;font-size:13px;line-height:1.5;color:' + C.ink2 + ';">' + rich_(b.small) + '</p>');
+      text.push(b.small, '');
+    } else if (b.items) {
+      let rows = b.items.map(function (it) {
+        return '<tr><td style="padding:10px 0;border-bottom:1px solid ' + C.soft + ';' + F + 'font-size:15px;line-height:1.4;color:' + C.ink + ';">'
+          + '<strong>' + esc_(it.name) + '</strong>' + (it.info ? '<br><span style="font-size:13px;color:' + C.ink2 + ';">' + esc_(it.info) + '</span>' : '') + '</td>'
+          + '<td align="right" valign="top" style="padding:10px 0 10px 12px;border-bottom:1px solid ' + C.soft + ';' + F + 'font-size:15px;font-weight:700;white-space:nowrap;color:' + C.ink + ';">' + esc_(it.price || '') + '</td></tr>';
+      }).join('');
+      (b.rows || []).forEach(function (r) {
+        rows += '<tr><td style="padding:8px 0 0;' + F + 'font-size:14px;color:' + C.ink2 + ';">' + esc_(r[0]) + '</td>'
+          + '<td align="right" style="padding:8px 0 0 12px;' + F + 'font-size:14px;color:' + C.ink2 + ';">' + esc_(r[1]) + '</td></tr>';
+      });
+      if (b.total) {
+        rows += '<tr><td style="padding:12px 0 0;' + F + 'font-size:17px;font-weight:800;color:' + C.ink + ';">' + esc_(b.total[0]) + '</td>'
+          + '<td align="right" style="padding:12px 0 0 12px;' + F + 'font-size:17px;font-weight:800;color:' + C.ink + ';">' + esc_(b.total[1]) + '</td></tr>';
+      }
+      html.push(title(b.title) + table(rows, 'margin:0 0 22px;'));
+      if (b.title) text.push(b.title.toUpperCase());
+      b.items.forEach(function (it) { text.push('• ' + it.name + (it.info ? ' — ' + it.info : '') + (it.price ? ': ' + it.price : '')); });
+      (b.rows || []).forEach(function (r) { text.push(r[0] + ': ' + r[1]); });
+      if (b.total) text.push(b.total[0] + ': ' + b.total[1]);
+      text.push('');
+    } else if (b.kv) {
+      const rows = b.kv.filter(function (r) { return r && r[1] !== undefined && String(r[1]).trim() !== ''; }).map(function (r) {
+        return '<tr><td valign="top" width="1%" style="padding:3px 14px 3px 0;' + F + 'font-size:14px;color:' + C.ink2 + ';white-space:nowrap;">' + esc_(r[0]) + '</td>'
+          + '<td style="padding:3px 0;' + F + 'font-size:15px;font-weight:700;color:' + C.ink + ';word-break:break-word;">' + rich_(r[1]) + '</td></tr>';
+      }).join('');
+      html.push(boxed(title(b.title) + table(rows, ''), b.tone));
+      if (b.title) text.push(b.title.toUpperCase());
+      b.kv.forEach(function (r) { if (r && r[1] !== undefined && String(r[1]).trim() !== '') text.push(r[0] + ': ' + r[1]); });
+      text.push('');
+    } else if (b.box) {
+      html.push(boxed(title(b.title) + b.box.map(rich_).join('<br>'), b.tone));
+      if (b.title) text.push(b.title.toUpperCase());
+      text.push.apply(text, b.box.concat(['']));
+    } else if (b.btn) {
+      html.push(table('<tr><td style="background:' + C.lime + ';border:2px solid ' + C.ink + ';border-radius:12px;">'
+        + '<a href="' + esc_(b.url) + '" style="display:inline-block;padding:13px 22px;' + F + 'font-size:16px;font-weight:800;color:' + C.ink + ';text-decoration:none;">' + esc_(b.btn) + ' →</a></td></tr>',
+        'width:auto;margin:0 0 ' + (b.note ? '10px' : '20px') + ';'));
+      if (b.note) html.push('<p style="' + F + 'margin:0 0 20px;font-size:13px;line-height:1.5;color:' + C.ink2 + ';">' + rich_(b.note) + '</p>');
+      text.push(b.btn + ': ' + b.url);
+      if (b.note) text.push(b.note);
+      text.push('');
+    } else if (b.steps) {
+      const rows = b.steps.map(function (s, i) {
+        return '<tr><td valign="top" width="34" style="padding:0 0 12px;">'
+          + '<div style="width:26px;height:26px;line-height:26px;text-align:center;background:' + C.lime + ';border:2px solid ' + C.ink + ';border-radius:50%;' + F + 'font-size:13px;font-weight:800;color:' + C.ink + ';">' + (i + 1) + '</div></td>'
+          + '<td valign="top" style="padding:3px 0 12px;' + F + 'font-size:15px;line-height:1.5;color:' + C.ink + ';">' + rich_(s) + '</td></tr>';
+      }).join('');
+      html.push(title(b.title) + table(rows, 'margin:0 0 10px;'));
+      if (b.title) text.push(b.title.toUpperCase());
+      b.steps.forEach(function (s, i) { text.push((i + 1) + '. ' + s); });
+      text.push('');
+    } else if (b.quote) {
+      html.push(title(b.title) + '<div style="margin:0 0 18px;padding:10px 14px;border-left:4px solid ' + C.lime + ';background:' + C.bg + ';' + F + 'font-size:15px;line-height:1.5;color:' + C.ink2 + ';">' + rich_(b.quote) + '</div>');
+      if (b.title) text.push(b.title.toUpperCase());
+      text.push(b.quote, '');
+    } else if (b.pre) {
+      html.push(title(b.title) + '<div style="margin:0 0 18px;padding:12px 14px;background:' + C.bg + ';border-radius:10px;font-family:Consolas,Menlo,monospace;font-size:13px;line-height:1.5;color:' + C.ink + ';white-space:pre-wrap;">' + rich_(b.pre) + '</div>');
+      if (b.title) text.push(b.title.toUpperCase());
+      text.push(b.pre, '');
+    }
+  });
+  const en = !!m.en;
+  const foot = owner
+    ? ['Admin: ' + SITE_URL + 'admin.html']
+    : [SHOP + (en ? ' · 3D printing to order' : ' · 3D печат по поръчка'),
+      (en ? 'Questions? Just reply to this email' : 'Въпроси? Просто отговори на този имейл')
+        + (CONTACT_PHONE ? (en ? ' or call / Viber us: ' : ' или звънни / пиши във Viber: ') + CONTACT_PHONE.replace(/ /g, '\u00a0') : '') + '.'];
+  const links = owner ? '' : '<br><a href="' + SITE_URL + 'katalog.html" style="color:' + C.ink2 + ';">' + (en ? 'Catalogue' : 'Каталог') + '</a> · '
+    + '<a href="' + SITE_URL + 'vaprosi.html" style="color:' + C.ink2 + ';">' + (en ? 'FAQ' : 'Въпроси') + '</a> · '
+    + '<a href="' + SITE_URL + 'obshti-usloviya.html" style="color:' + C.ink2 + ';">' + (en ? 'Terms' : 'Общи условия') + '</a>';
+  const page = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc_(m.subject) + '</title></head>'
+    + '<body style="margin:0;padding:0;background:' + C.bg + ';">'
+    + '<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:' + C.bg + ';">' + esc_(m.pre || '') + '</div>'
+    + table('<tr><td align="center" style="padding:24px 12px;">'
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;border-collapse:separate;background:' + C.paper + ';border:2px solid ' + C.ink + ';border-radius:18px;">'
+      + '<tr><td style="padding:18px 24px;border-bottom:2px solid ' + C.ink + ';">'
+      + '<span style="' + F + 'font-size:24px;font-weight:900;letter-spacing:.02em;color:' + C.ink + ';">SLOY</span>'
+      + '&nbsp;<span style="display:inline-block;vertical-align:4px;padding:1px 7px;background:' + C.lime + ';border:2px solid ' + C.ink + ';border-radius:20px;' + F + 'font-size:11px;font-weight:800;color:' + C.ink + ';">3D</span></td></tr>'
+      + '<tr><td style="padding:26px 24px 10px;">' + html.join('') + '</td></tr>'
+      + '<tr><td style="padding:16px 24px 18px;border-top:2px solid ' + C.ink + ';' + F + 'font-size:13px;line-height:1.6;color:' + C.ink2 + ';">'
+      + foot.map(function (l, i) { return i === 0 ? '<strong style="color:' + C.ink + ';">' + rich_(l) + '</strong>' : rich_(l); }).join('<br>') + links + '</td></tr>'
+      + '</table></td></tr>', 'background:' + C.bg + ';')
+    + '</body></html>';
+  const plain = text.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n\n—\n' + foot.join('\n') + (owner ? '' : '\n' + SITE_URL);
+  return { html: page, text: plain };
+}
+
+function sendMsg_(to, m, owner, replyTo) {
+  const r = render_(m, owner);
+  mail_(to, m.subject, r.text, replyTo, r.html);
+}
+
+const tr_ = function (en, bg, eng) { return en ? eng : bg; };
+
+function firstName_(s) { return String(s || '').trim().split(/\s+/)[0] || ''; }
+
+function money_(n, en) {
+  const r = Math.round((Number(n) || 0) * 100) / 100;
+  const s = r % 1 === 0 ? String(r) : r.toFixed(2);
+  return (en ? s : s.replace('.', ',')) + ' €';
+}
+
+// „Име (размер) — PLA Мат, Черен × 1 = 18,50 €“ → { name, info, price }
+function itemOf_(line) {
+  const s = oneLine_(line).replace(/^\d+\.\s*/, '');
+  let m = s.match(/^(.*) — ([^—]*) = ([^=]+)$/);
+  if (m) return { name: m[1], info: m[2], price: m[3] };
+  m = s.match(/^(.*) = ([^=]+)$/);
+  if (m) return { name: m[1], info: '', price: m[2] };
+  return { name: s, info: '', price: '' };
+}
+
+const trackUrl_ = function (n) { return /^\d{8,}$/.test(String(n || '').trim()) ? 'https://www.econt.com/services/track-shipment/' + String(n).trim() : ''; };
+const freeShip_ = function (o) { return /^SLOY/.test(String(o['Доставка за сметка на'] || '')); };
+
+// --- потвърждение на поръчка до клиента (веднага след поръчката) ---
+function orderMail_(order, f, c, en, pay, amount) {
+  const name = firstName_(f['Име']);
+  const payment = String(f['Плащане'] || '');
+  const cod = /наложен/i.test(payment), bank = /превод/i.test(payment), card = /карта/i.test(payment);
+  const approx = /ориентировъчно/.test(String(f['Общо'] || ''));
+  const toAddress = f['Доставка'] === 'До адрес';
+  const free = freeShip_(f);
+  const sum = Number(amount) > 0 ? money_(amount, en) : '';
+  const rows = [];
+  const eur = function (v) { return en ? v.replace(',', '.') : v; };   // сумите от полетата са на български (18,50 €)
+  const disc = String(f['Отстъпка'] || '');
+  let m = disc.match(/^Промокод (\S+): (−\S+ €)/);
+  if (m) rows.push([tr_(en, 'Промокод ', 'Promo code ') + m[1], eur(m[2])]);
+  m = disc.match(/^Първа поръчка: (−\S+ €)/);
+  if (m) rows.push([tr_(en, 'Отстъпка за първа поръчка', 'First-order discount'), eur(m[1])]);
+  m = String(f['Експресна'] || '').match(/\(\+(\S+ €)\)/);
+  if (m) rows.push([tr_(en, 'Експресна изработка', 'Express production'), '+' + eur(m[1])]);
+  rows.push([tr_(en, 'Доставка', 'Delivery'), free ? tr_(en, 'безплатна', 'free') : tr_(en, 'по тарифа на Еконт', 'Econt rates')]);
+  const days = f['Експресна'] ? tr_(en, 'експресно — до ' + EXPRESS_DAYS + ' работни дни', 'express — within ' + EXPRESS_DAYS + ' working days')
+    : tr_(en, 'до ' + MAKE_DAYS + ' работни дни', 'within ' + MAKE_DAYS + ' working days');
+  const where = c.address || (f['Град'] + ' — ' + f['Офис / адрес']);
+  const steps = [];
+  if (approx) steps.push(tr_(en, 'Преглеждаме модела и ти потвърждаваме крайната цена и срока до един работен ден.',
+    'We check the model and confirm the final price and timing within one working day.'));
+  steps.push(bank ? tr_(en, 'Щом преводът пристигне, започваме печата — ' + days + '.', 'Once your transfer arrives, we start printing — ' + days + '.')
+    : tr_(en, 'Печатаме поръчката ти — ' + days + '.', 'We print your order — ' + days + '.'));
+  steps.push(toAddress ? tr_(en, 'Изпращаме я с Еконт до адреса ти (' + where + ') и ти пишем с номер за проследяване.', 'We ship it with Econt to your address (' + where + ') and email you the tracking number.')
+    : tr_(en, 'Изпращаме я с Еконт до офис ' + where + ' и ти пишем с номер за проследяване.', 'We ship it with Econt to the office ' + where + ' and email you the tracking number.'));
+  steps.push(cod
+    ? tr_(en, 'Еконт ти праща SMS, когато пратката пристигне. При получаване плащаш ' + (sum || 'сумата') + (free ? '' : ' + доставката') + '.',
+      'Econt texts you when it arrives. You pay ' + (sum || 'the total') + (free ? '' : ' + delivery') + ' on collection.')
+    : tr_(en, 'Еконт ти праща SMS, когато пратката пристигне.' + (free ? '' : ' Доставката плащаш при получаване.'),
+      'Econt texts you when it arrives.' + (free ? '' : ' You pay for delivery on collection.')));
+  const blocks = [
+    { h: name ? tr_(en, 'Благодарим ти, ' + name + '!', 'Thank you, ' + name + '!') : tr_(en, 'Благодарим ти!', 'Thank you!') },
+    { p: tr_(en, 'Получихме поръчката ти ' + order + '. Ето какво поръча:', 'We\'ve received your order ' + order + '. Here\'s what you ordered:') },
+    { items: (c.lines || []).slice(0, 50).map(itemOf_), rows: rows, total: [tr_(en, 'Общо', 'Total'), c.total || f['Общо']] },
+  ];
+  if (bank) {
+    const details = bankDetails_();
+    blocks.push(details
+      ? { kv: [[tr_(en, 'По сметка', 'Account'), details.split(/\s*·\s*/).join('\n')], [tr_(en, 'Сума', 'Amount'), sum], [tr_(en, 'Основание', 'Reference'), order]],
+        title: tr_(en, 'Плащане с банков превод', 'Bank transfer'), tone: 'sun' }
+      : { box: [tr_(en, 'Ще ти изпратим данните за превод до един работен ден.', 'We\'ll send you the bank details within one working day.')],
+        title: tr_(en, 'Плащане с банков превод', 'Bank transfer'), tone: 'sun' });
+  }
+  if (card && pay) {
+    blocks.push({ p: tr_(en, 'Ако плащането с карта не е минало, можеш да го довършиш тук:', 'If your card payment didn\'t go through, you can finish it here:') });
+    blocks.push({ btn: tr_(en, 'Довърши плащането', 'Complete payment'), url: pay,
+      note: tr_(en, 'Линкът важи 24 часа. Платил си вече? Няма нужда да правиш нищо — Stripe ти праща разписка.',
+        'The link is valid for 24 hours. Already paid? Nothing to do — Stripe will email you a receipt.') });
+  }
+  blocks.push({ steps: steps, title: tr_(en, 'Какво следва', 'What happens next') });
+  blocks.push({ p: tr_(en, 'Искаш да промениш нещо? Просто отговори на този имейл — преди печата всичко се оправя лесно.',
+    'Want to change something? Just reply to this email — it\'s easy to fix before we print.') });
+  return { en: en, subject: tr_(en, 'Получихме поръчката ти ' + order, 'We\'ve received your order ' + order),
+    pre: tr_(en, 'Ето какво поръча и какво следва.', 'Here\'s what you ordered and what happens next.'), blocks: blocks };
+}
+
+// --- имейл до клиента при смяна на статуса (AUTO_STATUS_MAILS); extra.reason — причината при „Отказана“ ---
+function statusMail_(o, status, extra) {
+  const en = String(o['Език']) === 'EN';
+  const no = o['Поръчка'];
+  const name = firstName_(o['Име']);
+  const hi = name ? tr_(en, 'Здравей, ' + name + '!', 'Hi ' + name + '!') : tr_(en, 'Здравей!', 'Hi!');
+  const cod = /наложен/i.test(String(o['Плащане'] || '')) && !String(o['Платено'] || '').trim();
+  const free = freeShip_(o);
+  const sum = Number(o['Сума €']) > 0 ? money_(o['Сума €'], en) : '';
+  if (status === 'Печата се') {
+    return { en: en, subject: tr_(en, 'Поръчката ти ' + no + ' вече се печата', 'Your order ' + no + ' is being printed'),
+      pre: tr_(en, 'Ще ти пишем с номер за проследяване, щом тръгне.', 'We\'ll send you the tracking number as soon as it ships.'),
+      blocks: [
+        { h: tr_(en, 'Започнахме печата!', 'We\'ve started printing!') },
+        { p: hi + ' ' + tr_(en, 'Поръчката ти ' + no + ' вече е на принтера.', 'Your order ' + no + ' is on the printer right now.') },
+        { p: tr_(en, 'Щом я изпратим, ще ти пишем с номер за проследяване.', 'As soon as it ships, we\'ll email you the tracking number.') },
+      ] };
+  }
+  if (status === 'Изпратена') {
+    const tr = String(o['Товарителница'] || '').trim();
+    const url = trackUrl_(tr);
+    const office = o['Доставка'] !== 'До адрес';
+    const blocks = [
+      { h: tr_(en, 'Поръчката ти е на път!', 'Your order is on its way!') },
+      { p: hi + ' ' + (office
+        ? tr_(en, 'Изпратихме поръчка ' + no + ' с Еконт до офис ' + o['Град'] + ' — ' + o['Офис / адрес'] + '.', 'We\'ve shipped order ' + no + ' with Econt to the office ' + o['Град'] + ' — ' + o['Офис / адрес'] + '.')
+        : tr_(en, 'Изпратихме поръчка ' + no + ' с Еконт до адреса ти.', 'We\'ve shipped order ' + no + ' with Econt to your address.')) },
+    ];
+    if (tr) blocks.push({ kv: [[tr_(en, 'Товарителница', 'Tracking number'), tr]], tone: 'lime2' });
+    if (url) blocks.push({ btn: tr_(en, 'Проследи пратката', 'Track your parcel'), url: url });
+    blocks.push({ p: tr_(en, 'Обикновено пристига за ' + SHIP_DAYS + ' работни дни. Еконт ти праща SMS, когато е ' + (office ? 'в офиса.' : 'при куриера.'),
+      'It usually arrives in ' + SHIP_DAYS + ' working days. Econt will text you when it\'s ' + (office ? 'at the office.' : 'out for delivery.')) });
+    if (cod) blocks.push({ p: tr_(en, 'При получаване плащаш ' + (sum || 'сумата на поръчката') + (free ? '' : ' + доставката') + '.',
+      'You pay ' + (sum || 'the order total') + (free ? '' : ' + delivery') + ' on collection.') });
+    else if (!free) blocks.push({ small: tr_(en, 'Доставката плащаш при получаване.', 'You pay for delivery on collection.') });
+    return { en: en, subject: tr_(en, 'Поръчката ти ' + no + ' е на път', 'Your order ' + no + ' is on its way'),
+      pre: tr ? tr_(en, 'Товарителница ' + tr + ' — проследи я с един клик.', 'Tracking number ' + tr + ' — track it in one click.') : '', blocks: blocks };
+  }
+  if (status === 'Получена') {
+    const blocks = [
+      { h: name ? tr_(en, 'Благодарим ти, ' + name + '!', 'Thank you, ' + name + '!') : tr_(en, 'Благодарим ти!', 'Thank you!') },
+      { p: tr_(en, 'Надяваме се поръчката ти ' + no + ' да ти харесва. Ще се радваме на снимка — просто отговори на този имейл.',
+        'We hope you love your order ' + no + '. We\'d be thrilled to see a photo — just reply to this email.') },
+      { p: tr_(en, 'Ако нещо не е наред — счупено, различно от поръчаното или не пасва — пиши ни със снимка до 3 дни и ще го оправим.',
+        'If anything\'s wrong — broken, not what you ordered or doesn\'t fit — send us a photo within 3 days and we\'ll make it right.') },
+    ];
+    if (THANKS_CODE) blocks.push({ kv: [[tr_(en, 'Код', 'Code'), THANKS_CODE], [tr_(en, 'Отстъпка', 'Discount'), THANKS_OFF]],
+      title: tr_(en, 'За следващата ти поръчка', 'For your next order'), tone: 'pink' });
+    blocks.push({ btn: tr_(en, 'Разгледай каталога', 'Browse the catalogue'), url: SITE_URL + 'katalog.html' });
+    return { en: en, subject: tr_(en, 'Как ти харесва поръчката?', 'How do you like your order?'),
+      pre: tr_(en, 'Ще се радваме на снимка и мнение.', 'We\'d love a photo and your thoughts.'), blocks: blocks };
+  }
+  if (status === 'Отказана') {
+    const reason = String((extra && extra.reason) || '').trim();
+    const pay = String(o['Плащане'] || '');
+    const paid = String(o['Платено'] || '').trim() !== '';
+    const blocks = [
+      { h: tr_(en, 'Поръчката ти е отменена', 'Your order has been cancelled') },
+      { p: hi + ' ' + tr_(en, 'Отменихме поръчката ти ' + no + '.', 'We\'ve cancelled your order ' + no + '.') },
+    ];
+    if (reason) blocks.push({ quote: reason, title: tr_(en, 'Причина', 'Reason') });
+    // какво става с парите — според начина на плащане
+    if (paid) blocks.push({ p: tr_(en, 'Ще ти върнем платената сума' + (sum ? ' (' + sum + ')' : '') + ' по картата. Обикновено се появява по сметката ти до 5–10 работни дни.',
+      'We\'ll refund your payment' + (sum ? ' (' + sum + ')' : '') + ' to your card. It usually appears in your account within 5–10 working days.') });
+    else if (/карта/i.test(pay)) blocks.push({ p: tr_(en, 'Плащането с карта не е минало, така че от сметката ти не е изтеглено нищо.',
+      'The card payment didn\'t go through, so nothing has been charged.') });
+    else if (/наложен/i.test(pay)) blocks.push({ p: tr_(en, 'Плащането беше при доставка, така че не дължиш нищо.', 'Payment was due on delivery, so you don\'t owe anything.') });
+    else blocks.push({ p: tr_(en, 'Не сме получили плащане от теб, така че не дължиш нищо.', 'We haven\'t received any payment from you, so you don\'t owe anything.') });
+    blocks.push({ p: tr_(en, 'Ако имаш въпрос или искаш да поръчаш нещо друго, просто отговори на този имейл — ще помогнем.',
+      'If you have a question or would like to order something else, just reply to this email — we\'re happy to help.') });
+    blocks.push({ btn: tr_(en, 'Разгледай каталога', 'Browse the catalogue'), url: SITE_URL + 'katalog.html' });
+    return { en: en, subject: tr_(en, 'Поръчката ти ' + no + ' е отменена', 'Your order ' + no + ' has been cancelled'),
+      pre: reason || tr_(en, 'Отменихме поръчката ти. Ето какво трябва да знаеш.', 'We\'ve cancelled your order. Here\'s what you need to know.'), blocks: blocks };
+  }
+  return null;
+}
+
+// --- потвърждение на запитване до клиента ---
+function leadMail_(no, name, f, en) {
+  const first = firstName_(name);
+  const said = String(f['Описание'] || f['Съобщение'] || '').trim();
+  return { en: en, subject: tr_(en, 'Получихме запитването ти ' + no, 'We\'ve received your request ' + no),
+    pre: tr_(en, 'Ще ти отговорим до един работен ден.', 'We\'ll get back to you within one working day.'),
+    blocks: [
+      { h: first ? tr_(en, 'Благодарим ти, ' + first + '!', 'Thank you, ' + first + '!') : tr_(en, 'Благодарим ти!', 'Thank you!') },
+      { p: tr_(en, 'Получихме запитването ти и ще ти отговорим до един работен ден — с цена, срок и въпроси, ако имаме.',
+        'We\'ve received your request and will reply within one working day — with a price, timing and any questions we have.') },
+      said ? { quote: said.length > 700 ? said.slice(0, 700) + '…' : said, title: tr_(en, 'Твоето съобщение', 'Your message') } : null,
+      { p: tr_(en, 'Искаш да добавиш снимка, скица или файл? Просто отговори на този имейл.', 'Want to add a photo, sketch or file? Just reply to this email.') },
+    ] };
+}
+
+// --- ръчно съобщение от admin („Пиши на клиента“): текстът става абзаци в същото оформление ---
+function textMail_(subject, body, en) {
+  const parts = String(body || '').replace(/\r/g, '').replace(/\n+SLOY 3D\s*$/, '').split(/\n\s*\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+  return { en: en, subject: subject, pre: parts[1] || '', blocks: parts.map(function (s) { return { p: s }; }) };
+}
+
+// --- до теб ---
+function ownerOrderMail_(order, f, subject) {
+  const shown = ['Поръчка', 'Име', 'Телефон', 'Имейл', 'Доставка', 'Град', 'Офис / адрес', 'Плащане', 'Общо', 'Експресна', 'Отстъпка', 'Бележка', 'Продукти', 'Модели'];
+  const other = Object.keys(f).filter(function (k) { return shown.indexOf(k) < 0 && f[k] !== undefined && f[k] !== ''; });
+  const note = String(f['Бележка'] || '').trim();
+  return { subject: subject, pre: [f['Общо'], f['Доставка'], f['Плащане']].filter(Boolean).join(' · '), blocks: [
+    { h: 'Нова поръчка ' + order + (f['Експресна'] ? ' ⚡' : '') },
+    { kv: [['Клиент', f['Име']], ['Телефон', f['Телефон']], ['Имейл', f['Имейл'] === '—' ? '' : f['Имейл']],
+      ['Доставка', f['Доставка'] + ', ' + f['Град'] + ' — ' + f['Офис / адрес']], ['Плащане', f['Плащане']], ['Общо', f['Общо']],
+      ['Експресна', f['Експресна']], ['Отстъпка', f['Отстъпка']], ['Бележка', note === '—' ? '' : note]], tone: 'lime2' },
+    { pre: String(f['Продукти'] || f['Модели'] || ''), title: 'Продукти' },
+    other.length ? { kv: other.map(function (k) { return [k, f[k]]; }), tone: 'sky' } : null,
+    { btn: 'Отвори admin', url: SITE_URL + 'admin.html' },
+  ] };
+}
+
+function ownerLeadMail_(no, kind, subject, f) {
+  const said = String(f['Описание'] || f['Съобщение'] || '').trim();
+  const rest = Object.keys(f).filter(function (k) { return ['Описание', 'Съобщение'].indexOf(k) < 0 && f[k]; });
+  return { subject: subject, pre: kind + ' · ' + (f['Име'] || f['Лице за контакт'] || ''), blocks: [
+    { h: 'Ново запитване ' + no + ' — ' + kind },
+    { kv: rest.map(function (k) { return [k, f[k]]; }), tone: 'lime2' },
+    said ? { quote: said, title: 'Съобщение' } : null,
+    { btn: 'Отвори admin', url: SITE_URL + 'admin.html' },
+  ] };
+}
+
+function ownerNote_(subject, h, lines, extra) {
+  return { subject: subject, pre: lines[0] || '', blocks: [{ h: h }].concat(lines.map(function (l) { return { p: l }; }), extra || [],
+    [{ btn: 'Отвори admin', url: SITE_URL + 'admin.html' }]) };
+}
+
+// Пусни от редактора или от менюто: праща ти всички имейли с примерни данни, за да видиш как изглеждат
+function previewEmails() {
+  const f = { 'Име': 'Мария Петрова', 'Телефон': '0888 123 456', 'Имейл': owner_(), 'Доставка': 'Офис на Еконт', 'Град': 'София',
+    'Офис / адрес': 'Младост 1 (бул. Александър Малинов 23)', 'Плащане': 'Наложен платеж', 'Бележка': '—',
+    'Продукти': '1. Модерна фигура „Черна котка“ — PLA Мат, Черен × 1 = 18,50 € (≈ 95 г/бр.)\n   Размер: 15 см (74 × 148 × 150 мм)\n   Файл: https://makerworld.com/en/models/1438238',
+    'Доставка за сметка на': 'клиента', 'Общо': '18,50 € + доставка' };
+  const c = { lines: ['Модерна фигура „Черна котка“ (15 см) — PLA Мат, Черен × 1 = 18,50 €'], total: '18,50 € + доставка',
+    delivery: 'Офис на Еконт', address: 'София — Младост 1 (бул. Александър Малинов 23)', payment: 'Наложен платеж' };
+  const me = owner_();
+  const tag = function (m, t) { m.subject = '[ПРИМЕР ' + t + '] ' + m.subject; return m; };
+  sendMsg_(me, tag(orderMail_('SL-000000-001', f, c, false, '', 18.5), '1/8'), false, replyTo_());
+  const o = Object.assign({}, f, { 'Поръчка': 'SL-000000-001', 'Език': 'BG', 'Сума €': 18.5, 'Товарителница': '1052345678901', 'Платено': '' });
+  ['Печата се', 'Изпратена', 'Получена'].forEach(function (s, i) { sendMsg_(me, tag(statusMail_(o, s), (i + 2) + '/8'), false, replyTo_()); });
+  sendMsg_(me, tag(statusMail_(o, 'Отказана', { reason: 'Нямаме този цвят на склад и няма да пристигне навреме.' }), '5/8'), false, replyTo_());
+  sendMsg_(me, tag(leadMail_('Z-000000-001', 'Иван Иванов', { 'Описание': 'Искам табела за врата с номер 12 и името на семейството, в черно и бяло.' }, false), '6/8'), false, replyTo_());
+  sendMsg_(me, tag(orderMail_('SL-000000-003', Object.assign({}, f, { 'Име': 'John Smith', 'Плащане': 'Карта' }),
+    Object.assign({}, c, { lines: ['Black cat figure (15 cm) — PLA Matte, Black × 1 = 18.50 €'], total: '18.50 € + delivery', payment: 'Card' }), true, SITE_URL, 18.5), '7/8 EN'), false, replyTo_());
+  sendMsg_(me, tag(ownerOrderMail_('SL-000000-001', Object.assign({ 'Поръчка': 'SL-000000-001' }, f), 'Нова поръчка SL-000000-001 — 18,50 €'), '8/8 до теб'), true);
+  Logger.log('Пратени 8 примерни имейла до ' + me);
+}
+
+function mail_(to, subject, body, replyTo, html) {
+  if (MailApp.getRemainingDailyQuota() < 1) throw new Error('Дневният лимит за имейли в Google е изчерпан');
+  const opt = { to: to, subject: subject, body: body, name: SHOP };
+  if (html) opt.htmlBody = html;
+  if (replyTo) opt.replyTo = replyTo;
+  MailApp.sendEmail(opt);
+}
+
+function owner_() {
+  return OWNER_EMAIL || Session.getEffectiveUser().getEmail();
+}
+
+function replyTo_() {
+  return REPLY_TO || owner_();
+}
+
+
+function book_() {
+  return SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+}
+
+function sheet_(name) {
+  const sh = book_().getSheetByName(name);
+  if (!sh) throw new Error('Липсва лист „' + name + '“ — пусни setup()');
+  return sh;
+}
+
+// номерата на колоните по заглавията (редът в листа може да се мести)
+function cols_(sh) {
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  const map = {};
+  head.forEach(function (h, i) { map[String(h).trim()] = i + 1; });
+  return map;
+}
+
+function appendObj_(sh, obj) {
+  const col = cols_(sh);
+  const row = [];
+  for (let i = 0; i < sh.getLastColumn(); i++) row.push('');
+  Object.keys(obj).forEach(function (k) { if (col[k]) row[col[k] - 1] = clean_(obj[k]); });
+  sh.appendRow(row);
+}
+
+function listRule_(name, header, list) {
+  const sh = sheet_(name);
+  const c = cols_(sh)[header];
+  sh.getRange(2, c, sh.getMaxRows() - 1, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(list, true).build());
+}
+
+function findRow_(sh, col, value) {
+  const last = sh.getLastRow();
+  if (last < 2 || !col) return 0;
+  const v = sh.getRange(2, col, last - 1, 1).getValues();
+  for (let i = 0; i < v.length; i++) if (String(v[i][0]) === value) return i + 2;
+  return 0;
+}
+
+// SL-251015-123 / Z-251015-123 — ако номерът е зает, следващ случаен
+function uniqueNo_(sh, col, prefix) {
+  const day = Utilities.formatDate(new Date(), TZ, 'yyMMdd');
+  for (let i = 0; i < 60; i++) {
+    const n = prefix + '-' + day + '-' + (i < 30 ? 100 + Math.floor(Math.random() * 900) : 1000 + Math.floor(Math.random() * 9000));
+    if (!findRow_(sh, col, n)) return n;
+  }
+  throw new Error('Няма свободен номер');
+}
+
+function withLock_(fn) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try { return fn(); } finally { lock.releaseLock(); }
+}
+
+// текст от сайта: без формули (=, +, -, @ в началото), телефоните остават текст (0888… не става 888…)
+function clean_(v) {
+  if (v === undefined || v === null) return '';
+  if (v instanceof Date || typeof v === 'number') return v;
+  const s = String(v).slice(0, 5000);
+  return /^[=+\-@]/.test(s) || /^[\d\s]+$/.test(s) ? "'" + s : s;
+}
+
+function str_(v) {
+  return String(v || '').trim();
+}
+
+function oneLine_(v) {
+  return String(v || '').replace(/[\r\n]+/g, ' ').trim();
+}
+
+function digits_(v) {
+  return String(v || '').replace(/\D/g, '');
+}
+
+function email_(v) {
+  const s = String(v || '').trim();
+  return /^[^\s@<>()",;]+@[^\s@<>()",;]+\.[a-z]{2,}$/i.test(s) && s.length < 200 ? s : '';
+}
+
+function ymd_(v) {
+  if (!v) return '';
+  if (v instanceof Date) return Utilities.formatDate(v, TZ, 'yyyy-MM-dd');
+  return String(v).trim();
+}
+
+function getFolder_(name) {
+  const it = DriveApp.getFoldersByName(name);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(name);
+}
+
+function msg_(err) {
+  return String((err && err.message) || err);
+}
+
+function json_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
