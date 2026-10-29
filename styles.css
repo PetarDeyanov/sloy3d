@@ -1011,66 +1011,6 @@ body.locked { overflow: hidden; }
   .stat strong small { display: block; font-size: 12px; }
 }
 
-/* ---------- Празнични анимации (fx.js) ---------- */
-.fx-layer { position: fixed; inset: 0; z-index: 55; overflow: hidden; pointer-events: none; }
-.fx-dim { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 35%, rgba(23, 21, 31, .08) 25%, rgba(23, 21, 31, .55) 100%); animation: fx-dim 3.6s ease-in-out forwards; }
-.fx-moon {
-  position: absolute; right: 9%; top: 16%; width: clamp(90px, 14vw, 170px); aspect-ratio: 1; border: 2px solid var(--ink); border-radius: 50%;
-  background: radial-gradient(circle at 36% 34%, #fffbe6, #ffe27a 58%, #f2c14c); box-shadow: 0 0 70px 24px rgba(255, 220, 110, .35);
-  animation: fx-moon 3.6s ease-in-out forwards;
-}
-@keyframes fx-dim { 0% { opacity: 0; } 25%, 65% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes fx-moon { 0% { opacity: 0; transform: translateY(30px) scale(.9); } 25%, 65% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-12px); } }
-
-.fx-bat { position: absolute; left: 0; top: var(--y); width: var(--s); animation: fx-fly var(--d) linear forwards; }
-.fx-bat.rtl { animation-name: fx-fly-rtl; }
-.fx-bat > div { animation: fx-bob calc(var(--d) / 4) ease-in-out infinite alternate; }
-.fx-bat svg, .mini-bat svg { display: block; width: 100%; overflow: visible; fill: var(--ink); }
-.fx-bat .wing, .mini-bat .wing { transform-box: view-box; transform-origin: 50px 24px; animation: fx-flap-l .2s ease-in-out infinite alternate; }
-.fx-bat .wing-r, .mini-bat .wing-r { animation-name: fx-flap-r; }
-.fx-bat .eye, .mini-bat .eye { fill: #ffd84d; }
-@keyframes fx-fly { from { transform: translateX(-15vw); } to { transform: translateX(115vw); } }
-@keyframes fx-fly-rtl { from { transform: translateX(115vw); } to { transform: translateX(-15vw); } }
-@keyframes fx-bob { from { transform: translateY(-18px); } to { transform: translateY(18px); } }
-@keyframes fx-flap-l { from { transform: rotate(26deg); } to { transform: rotate(-18deg); } }
-@keyframes fx-flap-r { from { transform: rotate(-26deg); } to { transform: rotate(18deg); } }
-
-.fx-ghost { position: absolute; left: var(--x); bottom: -110px; width: var(--s); animation: fx-rise var(--d) ease-out forwards; }
-.fx-ghost > div { animation: fx-sway 1.6s ease-in-out infinite alternate; }
-.fx-ghost svg { display: block; width: 100%; overflow: visible; }
-.fx-ghost .body { fill: #fffdf8; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
-.fx-ghost .face { fill: var(--ink); }
-@keyframes fx-rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: .95; } 80% { opacity: .9; } 100% { transform: translateY(-78vh); opacity: 0; } }
-@keyframes fx-sway { from { transform: translateX(-16px) rotate(-6deg); } to { transform: translateX(16px) rotate(6deg); } }
-
-/* паякът: конецът (scaleY) и тялото (translateY) се движат с еднакво темпо, затова тялото винаги е на края на конеца */
-.fx-spider { position: absolute; top: -60px; right: clamp(18px, 9vw, 140px); width: 46px; --t: 1.8s; --ease: cubic-bezier(.3, 1.35, .5, 1); }
-.fx-spider .swing { transform-origin: 50% 0; animation: fx-dangle 2.6s ease-in-out var(--t) infinite alternate; }
-.fx-spider .thread { display: block; width: 1.5px; height: calc(var(--y) + 60px); margin: 0 auto -6px; background: var(--ink); transform-origin: 50% 0; transform: scaleY(0); animation: fx-thread-down var(--t) var(--ease) forwards; }
-.fx-spider svg { display: block; width: 100%; overflow: visible; fill: var(--ink); transform: translateY(calc(-1 * var(--y) - 60px)); animation: fx-body-down var(--t) var(--ease) forwards; }
-.fx-spider .legs { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.fx-spider .eye { fill: #fffdf8; }
-.fx-spider.up .swing { animation: none; }
-.fx-spider.up .thread { animation: fx-thread-up .9s ease-in forwards; }
-.fx-spider.up svg { animation: fx-body-up .9s ease-in forwards; }
-@keyframes fx-thread-down { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-@keyframes fx-body-down { from { transform: translateY(calc(-1 * var(--y) - 60px)); } to { transform: translateY(0); } }
-@keyframes fx-thread-up { from { transform: scaleY(1); } to { transform: scaleY(0); } }
-@keyframes fx-body-up { from { transform: translateY(0); } to { transform: translateY(calc(-1 * var(--y) - 60px)); } }
-@keyframes fx-dangle { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
-
-.fx-bit { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
-.fx-bit svg { display: block; width: 100%; overflow: visible; }
-
-/* спокойна версия: само плавно появяване и изчезване */
-.fx-still { position: absolute; left: var(--x); top: var(--y); width: var(--s); }
-.fx-still svg { display: block; width: 100%; overflow: visible; fill: var(--ink); }
-.fx-still .eye { fill: #ffd84d; }
-.fx-layer .fx-calm { animation: fx-fade-io 4s ease-in-out forwards; }
-.fx-layer .fx-spider.calm { --t: 3s; --ease: ease-out; }   /* слиза бавно по конеца, без подскок и люлеене */
-.fx-layer .fx-spider.calm .swing { animation: none; }
-@keyframes fx-fade-io { 0% { opacity: 0; } 25%, 70% { opacity: 1; } 100% { opacity: 0; } }
-
 /* ---------- Responsive ---------- */
 @media (max-width: 1100px) {
   .mat-grid { grid-template-columns: repeat(3, 1fr); }
@@ -1178,8 +1118,7 @@ body.locked { overflow: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  /* празничният слой си има собствена спокойна версия (fx.js) — плавно появяване без движение */
-  :not(.fx-layer, .fx-layer *), :not(.fx-layer *)::before, :not(.fx-layer *)::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
 /* Таймер до празника (сезонните страници и банерът) */

@@ -398,7 +398,7 @@ window.SLOY_I18N = (() => {
     "фигури, вази, подаръци и декорация с ефект на звездно небе.": "figures, vases, gifts and decor with a starry-sky effect.",
     "Блясъкът скрива линиите на слоевете.": "The sparkle hides the layer lines.",
     "свети в тъмното": "glows in the dark",
-    "нощни лампи, табели, играчки, Хелоуин декорация и ключодържатели.": "night lights, signs, toys, Halloween decor and keychains.",
+    "нощни лампи, табели, играчки, декорация и ключодържатели.": "night lights, signs, toys, decor and keychains.",
     "Зарежда се от светлина и свети няколко минути в тъмното.": "Charges in light and glows for a few minutes in the dark.",
     "пропуска светлина": "lets light through",
     "лампи, нощни лампи, вази и декорация, която свети отвътре.": "lamps, night lights, vases and decor that glows from within.",
