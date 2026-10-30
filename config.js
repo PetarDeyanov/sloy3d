@@ -10,5 +10,5 @@ window.SLOY_CONFIG = {
   messenger: "",               // напр. "https://m.me/sloy3dbg"
   web3formsKey: "",            // безплатен ключ от https://web3forms.com (без него формата отваря имейл програмата)
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbxldsKPCoZ7x5WtdhUxERsyCfjuf8dAyIFxIwPFhDJJ6KirkjbGQKZLN_j8tA4tbTgy/exec",           // адрес на Google Apps Script (виж apps-script/README.md): файлове в Drive, поръчки и промокодове в Google таблица
-  company: "Петър Деянов · гр. София"   // продавачът (показва се във футъра); при фирма — "Име ЕООД · ЕИК …"
+  company: ""                  // продавачът във футъра; празно = не се показва (името стои в общите условия и поверителността); при фирма — "Име ЕООД · ЕИК …"
 };

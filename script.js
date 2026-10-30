@@ -206,6 +206,60 @@
       </section>`).join('');
   }
 
+  // ---------- Бисквитки: питаме веднъж, изборът се пази в браузъра ----------
+  // Сайтът пази само нужното (количка, език, отстъпка) — без реклами и проследяване. Ако някога добавим статистика
+  // или реклама (напр. Meta Pixel), тя се пуска само при localStorage 'sloy-cookies' === 'accepted' и текстът тук се сменя.
+  // „Бисквитки“ най-долу на всяка страница отваря прозореца отново.
+  const COOKIE_KEY = 'sloy-cookies';
+  const CK = {
+    title: 'Ползваме бисквитки',
+    text: 'Пазим в браузъра ти само нужното, за да работи сайтът: количката, езика и отстъпката ти. Без реклами и проследяване.',
+    more: 'Подробности', yes: 'Приемам', no: 'Отказвам',
+    en: {
+      title: 'We use cookies',
+      text: 'We only keep what the site needs in your browser: your cart, language and discount. No ads, no tracking.',
+      more: 'Details', yes: 'Accept', no: 'Decline',
+    },
+  };
+  let cookieChoice = 'blocked';
+  try { cookieChoice = localStorage.getItem(COOKIE_KEY); } catch { /* без памет няма какво да пазим — не питаме */ }
+  const cookieBox = document.createElement('div');
+  cookieBox.className = 'cookies';
+  cookieBox.hidden = true;
+  cookieBox.innerHTML = `
+    <div class="cookies-backdrop"></div>
+    <div class="cookies-card" role="dialog" aria-modal="true" aria-labelledby="cookies-title">
+      <svg class="cookies-ic" viewBox="0 0 64 64" aria-hidden="true">
+        <defs><clipPath id="cookie-clip"><path d="M41.2 11.8A24 24 0 1 0 54.2 24.8A11 11 0 0 1 41.2 11.8Z"/></clipPath></defs>
+        <path class="dough" d="M41.2 11.8A24 24 0 1 0 54.2 24.8A11 11 0 0 1 41.2 11.8Z"/>
+        <g class="lines" clip-path="url(#cookie-clip)">${Array.from({ length: 15 }, (_, i) => `<rect x="6" y="${11 + i * 3.4}" width="54" height="1.2"/>`).join('')}</g>
+        <path class="edge" d="M41.2 11.8A24 24 0 1 0 54.2 24.8A11 11 0 0 1 41.2 11.8Z"/>
+        <circle class="chip" cx="22" cy="27" r="2.8"/><circle class="chip" cx="34" cy="21" r="2.4"/><circle class="chip" cx="27" cy="40" r="2.6"/>
+        <circle class="chip" cx="41" cy="35" r="2.8"/><circle class="chip" cx="19" cy="46" r="2.2"/><circle class="chip" cx="44" cy="48" r="2.4"/>
+      </svg>
+      <h2 id="cookies-title">${pick(CK, 'title')}</h2>
+      <p>${pick(CK, 'text')} <a href="poveritelnost.html#${lang === 'en' ? 'cookies' : 'biskvitki'}">${pick(CK, 'more')}</a></p>
+      <div class="cookies-btns">
+        <button class="btn btn-primary" type="button" value="accepted">${pick(CK, 'yes')}</button>
+        <button class="btn btn-ghost" type="button" value="declined">${pick(CK, 'no')}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(cookieBox);
+  const openCookies = () => {
+    cookieBox.hidden = false;
+    document.body.classList.add('locked');   // pop-up-ът за отстъпка изчаква, докато е отворено
+    $('.btn-primary', cookieBox).focus({ preventScroll: true });
+  };
+  cookieBox.addEventListener('click', e => {
+    const b = e.target.closest('button[value]');
+    if (!b) return;
+    try { localStorage.setItem(COOKIE_KEY, b.value); } catch { /* без памет — само за тази страница */ }
+    cookieBox.hidden = true;
+    if (![...$$('.drawer, .promo')].some(d => !d.hidden)) document.body.classList.remove('locked');
+  });
+  $$('[data-cookie-settings]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); openCookies(); }));
+  if (!cookieChoice) setTimeout(openCookies, 800);
+
   // ---------- Pop-up: отстъпка за първа поръчка ----------
   // Показва се веднъж — след 12 секунди или когато мишката тръгне да напуска страницата.
   // „Не, благодаря“ го скрива за 14 дни. Отстъпката се прилага сама в количката и калкулатора.

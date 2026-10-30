@@ -564,6 +564,7 @@ window.SLOY_I18N = (() => {
     "Как SLOY 3D събира, използва и пази личните ти данни.": "How SLOY 3D collects, uses and protects your personal data.",
     "Общи условия": "Terms",
     "Поверителност": "Privacy",
+    "Бисквитки": "Cookies",
     "Приемам": "I accept the",
     "Общите условия": "Terms",
     "и": "and",
