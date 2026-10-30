@@ -15,7 +15,10 @@
   bind('phone', cfg.phone, 'tel:' + phoneDigits);
   bind('viber', cfg.phone, 'viber://chat?number=' + encodeURIComponent(phoneDigits));
   bind('email', cfg.email, 'mailto:' + cfg.email);
+  bind('instagram', cfg.instagram, cfg.instagram);
   bind('facebook', cfg.facebook, cfg.facebook);
+  bind('tiktok', cfg.tiktok, cfg.tiktok);
+  bind('youtube', cfg.youtube, cfg.youtube);
   bind('messenger', cfg.messenger, cfg.messenger);
   $$('[data-company]').forEach(el => { el.textContent = cfg.company || ''; el.hidden = !cfg.company; });
 
