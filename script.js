@@ -131,6 +131,7 @@
       if (target < x.day) target = new Date(x.day.getFullYear() + 1, m - 1, d);
     }
     const tick = () => {
+      if (document.querySelector('.cookies:not([hidden])')) return;   // зад прозореца за бисквитките нищо не мърда
       const ms = target - Date.now();
       if (ms <= -DAY) { el.hidden = true; clearInterval(countdownTimers.get(el)); return; }
       el.hidden = false;
@@ -501,10 +502,14 @@
       let start = null;
       let visible = true;
       new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; }).observe(svg);
-      // докато прозорецът за бисквитките е отворен, принтерът чака на празната маса и тръгва, щом човек избере
+      // докато прозорецът за бисквитките е отворен, принтерът стои (готовото лого от HTML-а) и започва печата,
+      // щом човек избере — така страницата отзад не се прерисува на всеки кадър
       const tick = now => {
-        if (start === null || !cookieBox.hidden) start = now;
-        if (visible) render((now - start) % CYCLE);
+        if (!cookieBox.hidden) start = null;
+        else {
+          if (start === null) start = now;
+          if (visible) render((now - start) % CYCLE);
+        }
         requestAnimationFrame(tick);
       };
       requestAnimationFrame(tick);
