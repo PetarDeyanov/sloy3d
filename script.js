@@ -245,8 +245,11 @@
       </div>
     </div>`;
   document.body.appendChild(cookieBox);
+  // страницата отзад е inert, докато прозорецът е отворен — Tab не излиза от него
+  const pageInert = on => [...document.body.children].forEach(el => { if (el !== cookieBox) el.inert = on; });
   const openCookies = () => {
     cookieBox.hidden = false;
+    pageInert(true);
     document.body.classList.add('locked');   // pop-up-ът за отстъпка изчаква, докато е отворено
     $('.btn-primary', cookieBox).focus({ preventScroll: true });
   };
@@ -255,10 +258,11 @@
     if (!b) return;
     try { localStorage.setItem(COOKIE_KEY, b.value); } catch { /* без памет — само за тази страница */ }
     cookieBox.hidden = true;
+    pageInert(false);
     if (![...$$('.drawer, .promo')].some(d => !d.hidden)) document.body.classList.remove('locked');
   });
   $$('[data-cookie-settings]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); openCookies(); }));
-  if (!cookieChoice) setTimeout(openCookies, 800);
+  if (!cookieChoice) openCookies();   // веднага — излиза заедно със страницата, а не след нея
 
   // ---------- Pop-up: отстъпка за първа поръчка ----------
   // Показва се веднъж — след 12 секунди или когато мишката тръгне да напуска страницата.
@@ -497,13 +501,14 @@
       let start = null;
       let visible = true;
       new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; }).observe(svg);
+      // докато прозорецът за бисквитките е отворен, принтерът чака на празната маса и тръгва, щом човек избере
       const tick = now => {
-        if (start === null) start = now;
+        if (start === null || !cookieBox.hidden) start = now;
         if (visible) render((now - start) % CYCLE);
         requestAnimationFrame(tick);
       };
       requestAnimationFrame(tick);
-      setInterval(() => { if (visible) rTemp.textContent = 214 + Math.round(Math.random() * 2); }, 1400);
+      setInterval(() => { if (visible && cookieBox.hidden) rTemp.textContent = 214 + Math.round(Math.random() * 2); }, 1400);
     }
   }
 })();

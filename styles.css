@@ -423,7 +423,7 @@ select {
 .site-footer { padding: 56px 0 28px; color: var(--bg); background: var(--ink); }
 .site-footer .brand-word { color: var(--bg); }
 .footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 32px; }
-.footer-grid h4 { margin-bottom: 14px; font-family: var(--font-body); font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--lime); }
+.footer-grid h2 { margin-bottom: 14px; font-family: var(--font-body); font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--lime); }
 .footer-grid ul { list-style: none; padding: 0; display: grid; gap: 8px; }
 .footer-grid ul a { color: #cfc9bd; text-decoration: none; }
 .footer-grid ul a:hover { color: var(--lime); }
